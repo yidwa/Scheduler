@@ -1,0 +1,12 @@
+Jan 10. 
+
+update the Topology initopology(), for the shape not equals but contains to make sure that multiple line topology can be submitted and modelled .
+update the way to assign. each topology goes to specific supervisor for testing purpose except for thoses spouts one_to_one_scheduler findSupervisorT
+
+
+Jan 17
+Backup code before changing the data update
+works for modelling and system comparing
+
+Update StormRest for updatecomponetthread. give details of execution of each executor for scheduling purpose.
+also update spouting thread update
