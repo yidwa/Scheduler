@@ -134,7 +134,7 @@ public class dataretrival implements Runnable {
 					p.getServ().removeFirst();
 				}
 				
-				System.out.println("will update to it with "+queuearr.get(p.getPrioirty()-1));
+//				System.out.println("inside Update rate for arrival "+queuearr.get(p.getPrioirty()-1));
 				p.getArr().addLast(queuearr.get(p.getPrioirty()-1));
 				System.out.println("update arr for queue "+p.getPrioirty()+ " with "+queuearr.get(p.getPrioirty()-1));
 				double sum = 0 ;

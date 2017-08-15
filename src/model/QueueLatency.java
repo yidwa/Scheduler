@@ -1,7 +1,10 @@
 package model;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.LinkedList;
+
+import general.Methods;
 
 
 
@@ -46,21 +49,25 @@ public class QueueLatency {
 		System.out.println("uti for queue "+priority+" , "+uti);
 		double pm = waitProb();
 		System.out.println("wait pro  "+priority+" , "+pm);
-		double t1 = 0;
+//		double t1 = 0;
 		if (meanserv == 0 || uti == 1){
 			System.out.println("mean serve frequency is 0 or the util is 1");
 		}
-		t1 = pm/(meanserv*(1-uti));
+//		t1 = pm/(meanserv*(1-uti));
+		//update the waiting time formula
+		double t11 = meanserv/(meanserv*(1-uti));
 		double cs = DataCollection.cv(ServicePt, meanserv);
 		double ca = DataCollection.cv(ArrivalPt, meanarrv);
 		double tt = 2*numChannel;
 		double t2 = (ca+cs)/tt;
 //	    DecimalFormat formatter = new DecimalFormat("#0.000");
-	    double result = t1*t2*1000000;
+//	    double result = t1*t2*1000000;
+	    double result_b = t11*t2;
 //	    result += getExeLatency();
 //	    result = Double.valueOf(formatter.format(result));
-
-		return result;
+	    result_b = Double.valueOf(Methods.formatter.format(result_b));
+	    System.out.println("inside waiting time estimation : result_B"+ result_b);
+		return result_b;
 	}
 	
 	
@@ -84,6 +91,7 @@ public class QueueLatency {
 	 * @return
 	 */
 	public double getUti(){
+	
 		if(!ArrivalPt.isEmpty()&&!ServicePt.isEmpty()){
 			 meanserv = DataCollection.Mean(ServicePt);
 			 meanarrv = DataCollection.Mean(ArrivalPt);
@@ -91,7 +99,17 @@ public class QueueLatency {
 		if (meanserv == 0 || numChannel == 0)
 			return 0;
 		
-		return meanarrv/(numChannel*meanserv);
+		double d;
+		if(meanarrv == 0)
+			 d = 0;
+		else
+			 d = 1/meanarrv;
+//		System.out.println("inside getuti "+d);
+		Double d1  =  Double.valueOf(Methods.formatter.format(d));
+		Double d2 =  Double.valueOf(Methods.formatter.format(numChannel*(1.0/meanserv)));
+//		System.out.println("inside get uti "+d1+ " , d2 "+d2);
+		return Double.valueOf(Methods.formatter.format(d1/d2));
+//		return meanarrv/(numChannel*meanserv);
 	}
 
 	public int getNumChannel() {

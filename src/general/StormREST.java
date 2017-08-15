@@ -471,9 +471,12 @@ public class StormREST {
 	 * @return
 	 */
 	public double freqCal(Long uptime, Long emitted) {
-		DecimalFormat formatter = new DecimalFormat("#0.00");
+//		DecimalFormat formatter = new DecimalFormat("#0.00");
 		double result = 0;
-		result = Double.valueOf(formatter.format(emitted / uptime));
+//		result = Double.valueOf(formatter.format(emitted / uptime));
+//		System.out.println("inside freqCal "+uptime+ " , emitted "+emitted);
+		// update the result to show the arrvial time in ms
+		result = Double.valueOf(Methods.formatter.format(uptime*1000 / emitted));
 		return result;
 	}
 
@@ -546,8 +549,10 @@ public class StormREST {
 //						System.out.println(jo.get("executeLatency").getClass().getName());
 						sumlatency += Double.valueOf(templatencyupdate);
 //						System.out.println("inside execution total time in dataretvial for templatencyupdate "+ templatencyupdate);
-//						
-						result = Double.valueOf(Methods.formatter.format(1000 / Double.valueOf(sumlatency)));
+//					
+						//update the service time in ms
+						result = Double.valueOf(sumlatency);
+//						result = Double.valueOf(Methods.formatter.format(1000 / Double.valueOf(sumlatency)));
 					}
 					buffer.put(id,completelat-sumlatency);
 					System.out.println("the complete latency is "+completelat+" , the sum latency is "+sumlatency+" , the buffer time is "+(completelat-sumlatency));

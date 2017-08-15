@@ -52,3 +52,6 @@ Aug 15
 Need to configured to switch the scheduling
  1) mu -> qu
  2) data retrival performance metric -> queue update
+ 
+ update the serv and arr, which is the freCal and executionTotaltime method to get the service time and arrival time
+ update the getUti in QueueLatency

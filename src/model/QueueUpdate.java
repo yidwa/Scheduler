@@ -53,7 +53,7 @@ public class QueueUpdate implements Runnable {
 	  public void updateLatency(ArrayList<PriorityQueue> pq , int pri, LinkedList<Double> arr, LinkedList<Double> serv){
 		 
 		  	PriorityQueue q = pq.get(pri-1);
-		 	System.out.println("now update latency for"+ pri+ " ,it's size is "+ q.getSize());
+//		 	System.out.println("now update latency for"+ pri+ " ,it's size is "+ q.getSize());
 //		 	System.out.println("the size for arr is "+arr.size() +" , the size for serv is "+serv.size());
 		 	
 		  	q.setArr(arr);
@@ -64,13 +64,15 @@ public class QueueUpdate implements Runnable {
 		  	q.getQl().setArrivalPt(updateLA(arr));
 		  	q.getQl().setServicePt(updateLA(serv));
 		  	
-		  	System.out.println("priority "+q.getPrioirty()+" has the size of "+size);
+//		  	System.out.println("priority "+q.getPrioirty()+" has the size of "+size);
 		  	double estimation = q.getQl().waittimeEstimating();
 		  	double buffertimetotal = 0.0;
 		  	for(String s: q.getBuffertime().keySet()){
 		  		buffertimetotal += q.getBuffertime().get(s);
 		  	}
 		  	double bufferaverage = buffertimetotal/q.getNames().size();
+		  	
+		  	//not including the time for execution
 		  	q.setWaittime(estimation+bufferaverage);
 		  	System.out.println("the waiting time for queue "+pri +" just udpated with estimation "+estimation+ " and the buffertime averaget "+bufferaverage);
 	    }
@@ -104,7 +106,7 @@ public class QueueUpdate implements Runnable {
 		  ArrayList<String> hostupdate = new ArrayList<String>();
 		  for(String s: hosts){
 			  hostupdate.add(s);
-			  System.out.println("udpate queue "+pq.getPrioirty()+" with host "+s);
+//			  System.out.println("udpate queue "+pq.getPrioirty()+" with host "+s);
 		  }
 		  pq.setHosts(hostupdate);
 		  
@@ -126,7 +128,7 @@ public class QueueUpdate implements Runnable {
 				temparr = p.getArr();
 				tempserv = p.getServ();
 			
-				System.out.println("update latency for "+p.getPrioirty());
+//				System.out.println("update latency for "+p.getPrioirty());
 				if(p.getSize()>0)
 					updateLatency(pq, p.getPrioirty(), temparr, tempserv);
 			}
