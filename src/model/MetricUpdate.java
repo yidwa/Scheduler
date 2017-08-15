@@ -9,10 +9,16 @@ import general.Executor;
 import general.Methods;
 import general.StormREST;
 import general.Topology;
+import opt.Optimisation;
+
+
+// used for cpu scheduler
+
 
 public class MetricUpdate implements Runnable {
 	
 	HashMap<String, Topology> topologies;
+	HashMap<String, Integer> priority;
 	HashMap<String, Throughput> throughput;
 	HashMap<String, Latency> latency;
 	HashMap<String, Metrics> metrics;
@@ -25,13 +31,14 @@ public class MetricUpdate implements Runnable {
 		this.metrics = metrics;
 	}
 
-	public MetricUpdate(StormREST sr,HashMap<String, Topology>  topologies) {
+	public MetricUpdate(StormREST sr,HashMap<String, Topology>  topologies, HashMap<String, Integer> priority) {
 		// TODO Auto-generated constructor stub
 		this.topologies = topologies;
+		this.priority = priority;
 		this.throughput = new HashMap<String,Throughput>();
 		this.latency = new HashMap<String,Latency>();
 		this.metrics = new HashMap<String, Metrics>();
-	
+		
 		for(Topology t: topologies.values()){
 			Throughput thr = new Throughput(t.getTid(), t.getCompostruct(), t.getCompo());
 			Latency lc = new Latency(t.getTid(), t.getCompostruct(),t.getCompo(), new ArrayList<Double>(), new ArrayList<Double>(), t.getTworker().size());
@@ -55,12 +62,15 @@ public class MetricUpdate implements Runnable {
 //	    }
 	    
 	
-
+/**
+ * ???
+ */
 		public void performanceMetric(){
 			long thr;
 			double lat;
 			String sen = "";
 			for(String s: topologies.keySet()){
+//				System.out.println("perofrmance  metric s "+s);
 				thr = throughput.get(s).totalThroughput();
 //				System.out.println("througput in performance metric "+thr);
 				//add the spouting tuples
@@ -70,25 +80,58 @@ public class MetricUpdate implements Runnable {
 //				System.out.println("perofmrance update "+s+" , "+thr +" , "+lat);
 				Metrics m = metrics.get(s);
 			    m.setMetrics(thr, lat);
-			    sen += s+" model  , + thr "+thr+" , lat "+lat+"\n";
-			    sen += "system states "+ topologies.get(s).getSystememit()+" , "+topologies.get(s).getSystemlatency()+"\n";
+//			    sen += s+" model  , + thr "+thr+" , lat "+lat+"\n";
+			    String output = String.valueOf(throughput.get(s).getOutput());
+			    Long l = throughput.get(s).Throughput();
+//			    System.out.println("output is "+output);
+			    sen += s+" model  , + thr "+thr+" ,  output "+ l +" , "+lat+"\n";
+			    sen += "system states "+ topologies.get(s).getSystememit()+" , "+ l +" , "+topologies.get(s).getSystemlatency()+"\n";
 			    for(String cid : topologies.get(s).getCompo().keySet()){
 			    	Component c = topologies.get(s).getCompo().get(cid);
 			    	double pro = c.getTotalprocess();
 			    	double la = c.getModellatency();
+			    	// la is the execute latency
 			    	sen += "model "+cid+" , "+pro+", "+la+" \n";
 			    	if(c.spout == false)
    			    	  sen += "sys "+topologies.get(s).getSystemcolatency().get(cid)+" \n";
+			    	for(String ctid : c.threads.keySet()){
+			    		String temp = c.getThreads().get(ctid).changedtype;
+			    		if(!(temp == "")){
+			    			topologies.get(s).getChangedschedule().put(ctid, temp);
+				    		}
+			    		}
 			    	}
+			    
+			    sen += topologies.get(s).getChangedschedule().toString()+" priority "+ priority.get(s)+"\n";
+			    sen += "current scheduler is "+topologies.get(s).getCschedule().toString();
 			    sen += "\n";
 			    
 			    
 			}
-			System.out.println("metric update update to file "+sen);
-			Methods.writeFile(sen, "metrics.txt");
+			//comment for tesitng purpose
+			System.out.println("metric update "+sen);
+//			System.out.println("priority check "+priority.size());
+			System.out.println("before optimiation ");
+			HashMap<String, String> mapping = Optimisation.cpuscheduelr(topologies, priority);
+			System.out.println("after optimiation ");
+//			System.out.println("after cpuscheduler "+mapping.size());
+			String mappresult = "";
+			System.out.println("mapping result ");
+//			for(String s: mapping.keySet()){
+//				System.out.println(mapping.get(s).toString());
+//			}
+			for(String s: mapping.keySet()){
+				mappresult += s+"\n";
+				mappresult += mapping.get(s).toString();
+				mappresult += "\n";
+			}
+	        
+			Methods.writeFile(mappresult, "schedule",false);
+			//	System.out.println("usage in metric update "+Optimisation.cpuscheduelr(topologies, priority).toString());
+			Methods.writeFile(sen, "metrics.txt",true);
 //			    System.out.println("set metrics "+ thr+ " , "+ lat);
 //			    System.out.println("metric of "+s+" , "+metrics.get(s).latency+" , "+metrics.get(s).throughput);
-			}
+		}
 			   
 			
 	
@@ -128,4 +171,6 @@ public class MetricUpdate implements Runnable {
 	public void setLatency(HashMap<String, Latency> latency) {
 		this.latency = latency;
 	}
+
+	
 }

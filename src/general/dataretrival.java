@@ -1,13 +1,9 @@
 package general;
 
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
-
-import org.apache.commons.math.stat.descriptive.SynchronizedDescriptiveStatistics;
-
-import model.Metrics;
-
 
 public class dataretrival implements Runnable {
 
@@ -15,125 +11,196 @@ public class dataretrival implements Runnable {
 	public HashMap<String, LinkedList<Double>> ser; 
 	public StormREST sr;
 	public HashMap<String,Topology> topologies;
+	public HashMap<String,Integer> priority;
+	public ArrayList<PriorityQueue> queues;
+	public HashMap<Integer, LinkedList<Double>> arrtemp;
+	public HashMap<Integer, LinkedList<Double>> servtemp;
+	//used for calculation temporarly
+	public ArrayList<Double> queuearr;
+	public ArrayList<ArrayList<Double>> queueser;
 	
-	public dataretrival(HashMap<String,Topology> t, HashMap<String, LinkedList<Double>> arr,HashMap<String, LinkedList<Double>> ser, StormREST sr){
+	/**
+	 * retrieve data for data incoming and service 
+	 * @param t
+	 * @param p
+	 * @param arr
+	 * @param ser
+	 * @param sr
+	 */
+	public dataretrival(HashMap<String,Topology> t, HashMap<String, Integer> p, HashMap<String, LinkedList<Double>> arr,
+			HashMap<String, LinkedList<Double>> ser, StormREST sr, ArrayList<PriorityQueue> pq){
 		this.arr = arr;
 		this.ser = ser;
 		this.sr = sr;
 		this.topologies = t;
-//		System.out.println("dataretreiveal constructur");
+		this.priority = p;
+		this.queues = pq;
+//		this.arrtemp = new HashMap<Integer, LinkedList<Double>>();
+//		this.servtemp = new HashMap<Integer, LinkedList<Double>>();
+//		iniTemp(pq);
+		this.queuearr = new ArrayList<Double>();
+		this.queueser = new ArrayList<ArrayList<Double>>();
+		iniQueue(pq);
 	}
+	/**
+//	 * Initialize the temp values for each queue
+//	 * @param pq
+//	 */
+//	public void iniTemp(ArrayList<PriorityQueue> pq){
+//			for(PriorityQueue p : pq){
+//				arrtemp.put(p.getPrioirty(), p.getArr());
+//				servtemp.put(p.getPrioirty(), p.getServ());
+//			}
+//	}
 	
-	
+	/**
+	 * Initialize the arr and serv for each queue
+	 */
+	public void iniQueue(ArrayList<PriorityQueue> pq){
+		for(int i = 0 ;i<pq.size();i++){
+			Double d = 0.0;
+			queuearr.add(d);
+			ArrayList<Double> ad = new ArrayList<Double>();
+			queueser.add(ad);
+		}
+	}
+	/**
+	 * update the incoming rate of each topology and the processing rate
+	 * @param sr
+	 */
 	public void updateRates(StormREST sr){
-		sr.Topologyget(topologies, false);
-		//sr.topologySum();
+		sr.Topologyget(topologies,priority, false,queues);
 		sr.Topologyinfo(topologies);
 		double arrv = 0;
 		double serv = 0; 
-//		System.out.println("data retrival test A "+topologies.size());
+
+		
 		for(Topology t : topologies.values()){
-//			System.out.println("update arr and serv for topoloyg "+t);
-//			String s = t.getSpout().id;
-			String s ="";
+			String spoutname ="";
 			for(Component c: t.getCompo().values()){
 				if(c.spout == true)
-					s = c.cid;
+					spoutname = c.cid;
 			}
-//			System.out.println("data retrival test B ");
-//			System.out.println("s is "+s);
-			arrv = sr.freqInfo(t.tid, s, topologies);
-//			System.out.println("data retrival test BB ");
-			serv = sr.serviceRate(t.tid,topologies);
-//			System.out.println("data retrival test C "+arr.size());
-//			System.out.println("tid "+ t.tid + "  s "+s);
-//			System.out.println("arrival rate is "+arrv);
+			arrv = sr.freqInfo(t.tid, spoutname, topologies);
+			// reserve for the model-based scheduling
+//			serv = sr.serviceRate(t.tid,topologies);
+			// this is for the execution for priority based scheduling
+			int pri = priority.get(t.tid);
+//			System.out.println("inside update ratese in dataretvieal and the priority is "+pri);
+			serv = sr.executionTotaltime(t.tid, topologies, queues.get(pri-1));
+//			System.out.println("get "+t.tid+ " arrv is "+arrv+" , serv "+serv);
+			//update the traffic monitor for queues
+			
+			double temp = queuearr.get(pri-1);
+			temp += arrv;
+			queuearr.set(pri-1, temp);
+			
+		    // add average service rate and do the average at last
+			ArrayList<Double> tempserv = queueser.get(pri-1);
+			tempserv.add(serv);
+			
+			
 			if(arr.containsKey(t.tid)){
-//				System.out.println("already contained");
 				 	if(arr.size()==10){
 				 		arr.get(t.tid).removeFirst();
 				 		ser.get(t.tid).removeFirst();
 				 	}
-//				 	//get the delta value of latest observation and last value
-//				 		arrv = arrv - arr.get(t.tid).get(arr.get(t.tid).size()-1);
-//				 		serv = serv - ser.get(t.tid).get(ser.get(t.tid).size()-1);
 				 		arr.get(t.tid).addLast(arrv);
 				 		ser.get(t.tid).addLast(serv);
-//				 	System.out.println(arr.toString());
 				}
 			else{
-				System.out.println("adding new entry in arr and ser for "+t.tid);
+//				System.out.println("adding new entry in arr and ser for "+t.tid);
 				LinkedList<Double> ll = new LinkedList<>();
 				LinkedList<Double> ls = new LinkedList<>();
 				ll.addFirst(arrv);
 				ls.addFirst(serv);
 				arr.put(t.tid, ll);
 				ser.put(t.tid, ls);
-				
-//				System.out.println("new created "+ arr.containsKey(t.id));
 			}
-//			for(Component c: topologies.get(t.tid).getCompo().values()){
-//				sr.updateComponentThread(t.tid, c.cid,topologies, false);
-//			}
+			
+//			System.out.println("the arrival rate now is "+arr.toString());
+//			System.out.println("the service rate now is "+ser.toString());
 		}
+		System.out.println("update has been done for all topologies");
+		// the update has been done for all topologies
+	
+		
+		
+//		only used for queue scheduling
+		for(PriorityQueue p : queues){
+			if(p.getSize() != 0){
+				if(p.getArr().size() == 10){
+					p.getArr().removeFirst();
+					p.getServ().removeFirst();
+				}
+				
+				System.out.println("will update to it with "+queuearr.get(p.getPrioirty()-1));
+				p.getArr().addLast(queuearr.get(p.getPrioirty()-1));
+				System.out.println("update arr for queue "+p.getPrioirty()+ " with "+queuearr.get(p.getPrioirty()-1));
+				double sum = 0 ;
+				for(Double d: queueser.get(p.prioirty-1)){
+					sum += d;
+				}
+				double avg = sum/(queueser.get(p.prioirty-1).size());
+				p.getServ().addLast(avg);
+				System.out.println("update service rate as "+avg );
+			}
+		}
+		
+		
 	}
-//	public HashMap<String, LinkedList<Double>> getArr() {
-//		return arr;
-//	}
-//
-//	public HashMap<String, LinkedList<Double>> getSer() {
-//		return ser;
-//	}
+	public HashMap<Integer, LinkedList<Double>> getArrtemp() {
+		return arrtemp;
+	}
+
+	public void setArrtemp(HashMap<Integer, LinkedList<Double>> arrtemp) {
+		this.arrtemp = arrtemp;
+	}
 
 
 	@Override
 	public void run() {
 		// TODO Auto-generated method stub
-		
-//		sr.Topologyget();
 		System.out.println("new datareteival start");
 		updateRates(sr);
-		performanceMetric();
-	
-	}
-	
-	public void performanceMetric(){
-		System.out.println("new performance metric update");
-		String sen = "";
-//		System.out.println("topology size "+topologies.keySet().size());
-		for(String s: topologies.keySet()){
-			sen += s+"\n";
-			 sen += "system states "+ topologies.get(s).getSystememit()+" , "+topologies.get(s).getSystemlatency()+"\n";
-//			System.out.println("write for "+s);
-		    for(String cid : topologies.get(s).getCompo().keySet()){
-		    	Component c = topologies.get(s).getCompo().get(cid);
-		    	long pro = c.getLasttrans();
-		    	double latency = c.getExeLatency();
-//		    	double la = c.getModellatency();
-		    	sen += cid+" , "+pro+", "+latency+" \n";
-		    	
-//		    	System.out.println("component thread size "+c.getThreads().size());
-		    	for(ComponentThread ct : c.getThreads().values()){
-//		    		System.out.println("updaet performance for "+cid+" thread "+ ct.getId());
-		    		
-		    		String hostport = ct.getExecutor().getIndex();
-		    		double threadlatency = ct.getExecutelatency();
-		    		long threadthr = ct.getExecute();
-		    		sen += hostport+" , "+threadthr + " , "+threadlatency+"\n";
-		    	}
-		    sen += "\n";
-		    
-		    
-		}
-//		System.out.println("metric update update to file "+sen);
-		
-//		    System.out.println("set metrics "+ thr+ " , "+ lat);
-//		    System.out.println("metric of "+s+" , "+metrics.get(s).latency+" , "+metrics.get(s).throughput);
-		}
-		System.out.println("sentence is "+sen);
-		Methods.writeFile(sen, "metrics.txt");
+//		performanceMetric();
 	}
 }
+	
+	// only used for cpu scheduler on a component basis
+	/**
+	 * write to the metrics.txt for recording system metric, including topology emit, complete latency, fail rate,
+	 * cid, component tranfer, component latency, 
+	 */
+//	public void performanceMetric(){
+////		System.out.println("new performance metric update");
+//		String sen = "";
+//		for(String s: topologies.keySet()){
+//			sen += s+", ";
+//			 sen += ", "+ topologies.get(s).getSystememit()+", "+topologies.get(s).getSystemlatency()+", "+topologies.get(s).getFailrate() +", ";
+//		    for(String cid : topologies.get(s).getCompo().keySet()){
+//		    	Component c = topologies.get(s).getCompo().get(cid);
+//		    	long pro = c.getLasttrans();
+//		    	double latency = c.getExeLatency();
+//		    	double processing = c.getProcLatency();
+////		    	double la = c.getModellatency();
+//		    	sen += cid+", "+pro+", "+latency+", "+processing+", ";
+////		    	System.out.println("component thread size "+c.getThreads().size());
+//		    	for(ComponentThread ct : c.getThreads().values()){
+//		    		String hostport = ct.getExecutor().getIndex();
+//		    		double threadlatency = ct.getExecutelatency();
+//		    		double threadProlatency = ct.getProcesslatency();
+//		    		long threadthr = ct.getExecute();
+//		    		sen += hostport+", "+threadthr + ", "+threadlatency+", "+threadProlatency+", ";
+//		    	}
+//		    }
+//		    sen += "\n";
+//		}
+//		Methods.writeFile(sen, "details_metrics.txt",true);
+//	}
+//}
+
+
 //	public static void main(String[] args) throws InterruptedException, IOException {
 	
 	

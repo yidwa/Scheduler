@@ -1,12 +1,16 @@
 package general;
 
+import java.util.ArrayList;
+
 import model.General;
+//import model.MetricUpdate;
+import opt.Optimisation;
 
 public class ComponentThread {
 	// the latest observation of execution time for each tuple
 	public double executelatency;
 	public double processlatency;
-
+	public String cid;
 	// probability that tuples come to this thread
 	public double prob;
 //	public String cid;
@@ -17,9 +21,11 @@ public class ComponentThread {
 	public long totalexecute;
 	public long ack;
 //	public double recevietotal;
-
 	public long compoemit;
 
+	public String changedtype;
+	
+	
 	public long getCompoemit() {
 		return compoemit;
 	}
@@ -42,10 +48,12 @@ public class ComponentThread {
 
 	
 
-	public ComponentThread(String ctid) {
+	public ComponentThread(String cid, String ctid) {
+		this.cid = cid;
 		this.ctid = ctid;
 		this.prob = 0;
 		this.totalexecute = 0;
+		this.changedtype ="";
 	}
 	
 	
@@ -58,7 +66,7 @@ public class ComponentThread {
 		setProcesslatency(processlatency);
 		setAck(ack);
 		setExecutor(exe);
-		
+
 	}
 	
 
@@ -72,29 +80,61 @@ public class ComponentThread {
 	}
 
 
-	// processed amount by each thread
+	/**
+	 * estimate the processed amount by each thread 
+	 * @param amount incoming amount of tuple
+	 * @return
+	 */
 	public double threadProcessed(double amount){
 		double est = 0;
 		double result = 0;
 		if (processlatency != 0){
-			
 			est = Double.valueOf(Methods.formatter.format(1000/Double.valueOf(processlatency)));
-			
-		}
-
-//			System.out.println("history data not updated, please update data first");
+			}
 		
 		if(prob>0){
 			double pred = (double) (prob * amount);
-//			System.out.println("threadprocesssed "+ctid+" , "+amount+ " , "+prob +" , "+pred);
-//			System.out.println("thread processed estimated amount  "+ est +" , predicted amount "+ pred);
 			result = Math.min(est, pred);
+			
+			String hostname = getExecutor().host;
+			int ind;
+			if(hostname.contains("s"))
+				ind = -1;
+			else if (hostname.contains("l"))
+				ind = 1;
+			else
+				ind = 0;
+			
+			int updateindex = Optimisation.findType(ind, est, pred, processlatency);
+			if(ind == updateindex){
+				System.out.println(ctid+ " , "+getExecutor().getHost().substring(0, 1)+" unchanged " +ind+" , "+updateindex);
+			}
+			else{
+				String s =getExecutor().getHost().substring(0, 1);
+				
+//				System.out.println(ctid+", "+s+" changed to "+Methods.findHosttype(s, updateindex-ind));
+				setChangedtype(Methods.findHosttype(s, updateindex-ind));
+			}
+//			System.out.println(ctid+"thread processed "+(pred-est));
+		}
+		else{
+			System.out.println("thread processed prob <0");
 		}
 //		setRecevietotal(amount);
 		return result;
 	}
 	
 	
+	public String getChangedtype() {
+		return changedtype;
+	}
+
+
+	public void setChangedtype(String changedtype) {
+		this.changedtype = changedtype;
+	}
+
+
 	public String getId() {
 		return ctid;
 	}
@@ -105,6 +145,11 @@ public class ComponentThread {
 		this.ctid = ctid;
 	}
 
+
+
+	public String getCid() {
+		return cid;
+	}
 
 
 	public long getExecute() {

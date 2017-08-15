@@ -19,13 +19,19 @@ public class Topology {
 	String shape;
 	HashMap<String,Component> compo;
 	ArrayList<ArrayList<String>> compostruct;
-	String uptime;
+	Long uptime;
 	Long workers;
 	int layer;
 	Map<String, Long> bolts;
 	double systememit;
 	double systemlatency;
-//	HashMap<String, Long> systemcoemit;
+	String failrate;
+	long failed;
+	
+	HashMap<String, String> cschedule;
+	HashMap<String, String> changedschedule;
+
+	//	HashMap<String, Long> systemcoemit;
 	HashMap<String, Double>systemcolatency;
 	public Topology(String tid, String tname){
 		this.tname = tname;
@@ -34,15 +40,30 @@ public class Topology {
 		this.tthread = new HashMap<String, ArrayList<Executor>>();
 		this.compo = new HashMap<String,Component>();
 		this.compostruct = new ArrayList<ArrayList<String>>();
-		this.uptime = "";
+		this.uptime = (long) 0;
 		this.shape = tname;
 		this.layer = 0;
 		this.systememit = 0;
 		this.systemlatency = 0.0;
 //		this.systemcoemit = new HashMap<String,Long>();
 		this.systemcolatency = new HashMap<String,Double>();
+		this.failrate = "0";
+		this.cschedule = new HashMap<String,String>();
+		this.changedschedule = new HashMap<String, String>();
 	}
 	
+
+
+	public String getFailrate() {
+		return failrate;
+	}
+
+
+
+	public void setFailrate(String failrate) {
+		this.failrate = failrate;
+	}
+
 
 
 	public double getSystememit() {
@@ -51,7 +72,15 @@ public class Topology {
 
 
 
+	public long getFailed() {
+		return failed;
+	}
 
+
+
+	public void setFailed(long failed) {
+		this.failed = failed;
+	}
 
 
 	public void setSystememit(double systememit) {
@@ -81,6 +110,30 @@ public class Topology {
 //	public void setSystemcoemit(HashMap<String, Long> systemcoemit) {
 //		this.systemcoemit = systemcoemit;
 //	}
+
+
+
+	public HashMap<String, String> getCschedule() {
+		return cschedule;
+	}
+
+
+
+	public void setCschedule(HashMap<String, String> cschedule) {
+		this.cschedule = cschedule;
+	}
+
+
+
+	public HashMap<String, String> getChangedschedule() {
+		return changedschedule;
+	}
+
+
+
+	public void setChangedschedule(HashMap<String, String> changedschedule) {
+		this.changedschedule = changedschedule;
+	}
 
 
 
@@ -352,11 +405,11 @@ public class Topology {
 		this.compostruct = compostruct;
 	}
 
-	public String getUptime() {
+	public Long getUptime() {
 		return uptime;
 	}
 
-	public void setUptime(String uptime) {
+	public void setUptime(Long uptime) {
 		this.uptime = uptime;
 	}
 

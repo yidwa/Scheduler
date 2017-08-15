@@ -3,6 +3,7 @@
 	<name>Scheduler</name>
 	<comment></comment>
 	<projects>
+		<project>MOEAFramework-2.12</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

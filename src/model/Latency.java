@@ -59,12 +59,15 @@ public class Latency {
 //			System.out.println("calculate latency for "+tid);
 			for(int i =1; i<layer; i++){
 				int temp = compostruc.get(i).size();
+//				System.out.println("latency total latency layer "+i);
 				for(int j = 0; j<compostruc.get(i).size(); j++){
 					String value = compostruc.get(i).get(j);
+//					System.out.println("latency total latency value "+value);
 					c = compo.get(value);
 					String s = c.cid;
-					
+//					System.out.println("latency total latency before estimatino ");
 					ll = c.waittimeEstimating();
+//					System.out.println("latency total latency after estimatino ");
 					temp+= ll;
 				}
 //				

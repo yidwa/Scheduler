@@ -23,6 +23,7 @@ public class Throughput {
 //	public HashMap<String,Long> compolasttran;
 	public HashMap<String, ArrayList<String>> compoports;
 	public String tid;
+	public Long output; 
 //	public Throughput(ArrayList<String> name, String shape, ArrayList<Integer> thread, int rate){
 //		this.t = new Topology(name,shape,thread);
 	public Throughput(String tname, ArrayList<ArrayList<String>> compostruc, HashMap<String,Component> compo){
@@ -38,6 +39,7 @@ public class Throughput {
 //		this.compolastproc = new HashMap<String, Long>();
 //		this.compolasttran = new HashMap<String, Long>();
 		this.compoports = new HashMap<String, ArrayList<String>>();
+		this.output = (long) 0;
 //		this.compoprocess = new HashMap<String, ArrayList<Long>>();
 	}
 	
@@ -60,6 +62,14 @@ public class Throughput {
 		this.inputrate = inputrate;
 	}
 
+	public long getOutput(){
+		long temp = 0;
+		ArrayList<Component> outputlayer = new ArrayList<>();
+		for(String cid : compostruc.get(layer-1)){
+			temp += Long.valueOf(compo.get(cid).getValuealltime().get("acked"));
+		}
+		return temp;
+	}
 	// calculate the total throghput, based on lastest observation values
 	// every time calculate the throughput, threads and values of each component will be update first
 	// adding the latency 
@@ -70,7 +80,7 @@ public class Throughput {
 		long output = 0;
 //		double latency = 0;
 		Component c;
-		
+//		for(int i =0; i<layer; i++){
 		for(int i =1; i<layer; i++){
 			int temp = compostruc.get(i).size();
 			for(int j = 0; j<compostruc.get(i).size(); j++){
@@ -81,7 +91,7 @@ public class Throughput {
 //				c.updateData(c.lasttrans, c.lastproc);
 				
 				//suppose that the arrival rate to each downstream is equal
-//				System.out.println("input/temp "+input/temp);
+				
 				processed = c.totalProcessed(input/temp);
 //				c.updateP_T(compolasttran.get(s), compolastproc.get(s));
 //				output += c.procTotran();
@@ -101,7 +111,46 @@ public class Throughput {
 //		System.out.println("totalthorughput final result is "+l);
 		return l;
 	}
-	
+	public long Throughput(){
+		long l = 0;
+		double processed;
+		double input = inputrate;
+		long output = 0;
+		long result = 0;
+//		double latency = 0;
+		Component c;
+//		for(int i =0; i<layer; i++){
+		for(int i =1; i<layer; i++){
+			result = 0;
+			int temp = compostruc.get(i).size();
+			for(int j = 0; j<compostruc.get(i).size(); j++){
+				String value = compostruc.get(i).get(j);
+				c = compo.get(value);
+				String s = c.cid;
+//				c.updatethreads(c.prob, c.executime);
+//				c.updateData(c.lasttrans, c.lastproc);
+				
+				//suppose that the arrival rate to each downstream is equal
+				
+				processed = c.totalProcessed(input/temp);
+//				c.updateP_T(compolasttran.get(s), compolastproc.get(s));
+//				output += c.procTotran();
+				long outputtemp = c.procTotran(compo.get(s).lastproc, compo.get(s).lasttrans);
+				
+//				latency += c.waittimeEstimating();
+				output += outputtemp;
+//				System.out.println("final result plus "+processed);
+//				l += processed;
+			}
+//				System.out.println("output at "+i+" layer is "+output);
+				result = output;
+//				
+//				output = 0;
+//				System.out.println("input at layer "+(i+1)+ " is "+input);
+		}
+//		System.out.println("totalthorughput final result is "+l);
+		return result;
+	}
 	//update these observation data by routine function
 	public void updateProb(HashMap<String, ArrayList<Double>> cp){
 		compoprob = cp;

@@ -1,8 +1,6 @@
 package general;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -16,714 +14,835 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.hadoop.yarn.webapp.hamlet.Hamlet.P;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
-//import clojure.main;
+import com.sun.xml.bind.v2.runtime.unmarshaller.XsiNilLoader.Array;
 
 public class StormREST {
-	// all topologies 
-//	public HashMap<String, Topology> topologies;
-//	ArrayList<Topology> topologies;
-	// all supervisors
 	URL url;
 	String hostport;
 	HttpURLConnection conn;
 
 	String output;
 	BufferedReader br;
-	//used for calculate the prob
+	// used for calculate the probability
 	long transnext;
-	//public static String parallel;
-	// in order to get bolt in aspected order
-	
- 	
-	
-	public StormREST(String hostport){
+
+	public StormREST(String hostport) {
 		this.hostport = hostport;
-//		topologies  = new HashMap<String, Topology>();
-		
 		this.output = "";
 	}
-	
-	
-	public ArrayList<String> makecopy(Set<String> tlist){
+
+	// make a hard copy of the given list
+	public ArrayList<String> makecopy(Set<String> tlist) {
 		ArrayList<String> result = new ArrayList<String>();
-		for(String s:tlist){
+		for (String s : tlist) {
 			result.add(s);
 		}
 		return result;
 	}
-	
-//update the running topology, update log file
-	public void Topologyget(HashMap<String,Topology> topologies, boolean ini){
-//			System.out.println("topology get");
-		    Set<String> tlist = topologies.keySet();
-		    ArrayList<String> copy = makecopy(tlist);
-		    boolean logchange = false;
-		    String sen = "";
-			Connect("/api/v1/topology/summary");
-			//System.out.println("output from server \n");
-			try {
-				while((output = br.readLine()) != null){
-//		System.out.println(output+ "\n");
-					JSONParser parser = new JSONParser();
-					
-					Object obj = parser.parse(output);
-					JSONObject jobj = (JSONObject)obj;
-					JSONArray topo = (JSONArray) jobj.get("topologies");
-					for (int i = 0 ; i< topo.size(); i++){
-						obj = topo.get(i);
-						jobj = (JSONObject) obj;
-					//	String name = (String)jobj.get("name");
-						String id = (String)jobj.get("id");
-//						if(topologies.containsKey(id)){
-//							copy.remove(id);
-////							System.out.println("reduce "+id +" in current topology records");
-//						}
-//						else{
-//							logchange = true;
-//							String time = Methods.formattime();
-//							sen += time + "  add topology "+ id +"\n";
-						String name = (String)jobj.get("name");
-//							String tanme = (String)jobj.get("name");
-						String uptime = (String)jobj.get("uptime");
-				//		System.out.println("id is  "+ id);
-//					System.out.println(temp.get("name")+ ", "+temp.get("id"));
-//						System.out.println(topo.get(i).getClass().getName());
-				//		topologies.add(new Topology((String)jobj.get("id")));
-						if(!topologies.containsKey(id)){
+
+	// update the running topology and their priority, update log file with new
+	// and killed topology
+	public void Topologyget(HashMap<String, Topology> topologies, HashMap<String, Integer> priority, boolean ini,
+			ArrayList<PriorityQueue> pq) {
+		Set<String> tlist = topologies.keySet();
+		ArrayList<PriorityQueue> queues = pq;
+		ArrayList<String> copy = new ArrayList<String>();
+		// update info
+		if (ini == false)
+			copy = makecopy(tlist);
+		boolean logchange = false;
+		boolean topologyini = false;
+		String sen = "";
+		Connect("/api/v1/topology/summary");
+
+		try {
+			while ((output = br.readLine()) != null) {
+				JSONParser parser = new JSONParser();
+				Object obj = parser.parse(output);
+				JSONObject jobj = (JSONObject) obj;
+				JSONArray topo = (JSONArray) jobj.get("topologies");
+				for (int i = 0; i < topo.size(); i++) {
+					obj = topo.get(i);
+					jobj = (JSONObject) obj;
+					String id = (String) jobj.get("id");
+					String name = (String) jobj.get("name");
+					Long uptimeSeconds = (Long) jobj.get("uptimeSeconds");
+					// default priority is 3, the lowest level if it is not
+					// included in the topology name
+					int pri = 3;
+					if (name.contains("_")) {
+						int ind = name.indexOf("_");
+						pri = Integer.valueOf(name.substring(ind + 1, ind + 2));
+					}
+					// initialize
+					if (ini) {
+						logchange = true;
+						sen += "add topology " + id + " with prioirty " + pri + "\n";
+						Topology t = new Topology(id, name);
+						topologies.put(id, t);
+						priority.put(id, pri);
+						PriorityQueue tempqueue = queues.get(pri-1);
+						tempqueue.setPrioirty(pri);
+						tempqueue.setSize(tempqueue.getSize()+1);
+						ArrayList<String> n = tempqueue.getNames();
+						n.add(id);
+						tempqueue.setNames(n);
+						topologyini = true;
+					}
+					// update the topology if it is new and remove it from the active list if it is alive.
+					else {
+						if (!topologies.containsKey(id)) {
 							logchange = true;
-							String time = Methods.formattime();
-							sen += time + "  add topology "+ id +"\n";
-							Topology t = new Topology(id,name);
+							sen += "add topology " + id + " with prioirty " + pri + "\n";
+							Topology t = new Topology(id, name);
 							topologies.put(id, t);
-						}
+							priority.put(id, pri);
+							PriorityQueue tempqueue = queues.get(pri-1);
+							tempqueue.setSize(tempqueue.getSize()+1);
+							ArrayList<String> n = tempqueue.getNames();
+							n.add(id);
+							tempqueue.setNames(n);
+							topologyini = true;
+							sen+= " now the priority queues for priority "+pri +" is ";
+							for(String s: queues.get(pri-1).getNames()){
+								sen += s+ " , ";
+							}
+							sen+="\n";
+							}
+						// the given topology is still alive
 						else{
 							copy.remove(id);
-////						System.out.println("reduce "+id +" in current topology records");
+							topologyini = false;
 						}
-//						System.out.println("tid "+t.tid+ " tname "+ t.tname+ " tshape "+t.shape);
-							topologies.get(id).setUptime(uptime);
-//							System.out.println("topology get end");
-							topologySum(id, ini, topologies);
-						
-						
 					}
-//					System.out.println("topologies "+topologies.toString());
+					topologies.get(id).setUptime(uptimeSeconds);
+					topologySum(id, topologyini, topologies);
 				}
-				if(copy.size()>0){
-					logchange = true;
-					String time = Methods.formattime();
-					sen += "\n" + time +"  remove topology: ";
-					for(String s: copy){
-						topologies.remove(s);
-						sen += s+" ,";
+			}
+			if (copy.size() > 0) {
+				logchange = true;
+				sen += "  remove topology: ";
+				for (String s : copy) {
+					topologies.remove(s);
+					int p = priority.get(s);
+					queues.get(p-1).size--;
+					queues.get(p-1).names.remove(s);
+					sen += s + " ,";
+					System.out.println("the priority queus has been updated for priority "+p+ " with remove of "+ s);
+				}
+			}
+			CentralControl.setPriority(priority);
+			if (logchange) {
+				Methods.writeFile(sen, "log.txt", true);
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		conn.disconnect();
+	}
+
+	/**
+	 * collect the worker information of each topology and write the information to a specific file
+	 * @param topologies, the collection of active topologies
+	 */
+	public void Topologyinfo(HashMap<String, Topology> topologies) {
+		if (topologies.size() == 0)
+			System.out.println("no topology is working at the moment");
+		else {
+			for (String s : topologies.keySet()) {
+				topologyworker(s, topologies);
+			}
+			for (Entry<String, Topology> e : topologies.entrySet()) {
+				String sen = e.getKey() + " , " + e.getValue().tworker.toString() + "\n";
+				Methods.writeFile(sen, "tworkers.txt", true);
+			}
+		}
+	}
+
+
+	/**
+	 * Collect the worker information of each component
+	 * @param id, topology name
+	 * @param topologies
+	 */
+	public void topologyworker(String id, HashMap<String, Topology> topologies) {
+		Connect("/api/v1/topology-workers/" + id);
+		try {
+			while ((output = br.readLine()) != null) {
+				JSONParser parser = new JSONParser();
+				Object obj = parser.parse(output);
+				JSONObject jobj = (JSONObject) obj;
+				JSONArray topo = (JSONArray) jobj.get("hostPortList");
+				//active host + port for the given topology
+				ArrayList<Executor> temp = new ArrayList<Executor>();
+				
+				for (int i = 0; i < topo.size(); i++) {
+					obj = topo.get(i);
+					jobj = (JSONObject) obj;
+					String h = (String) jobj.get("host");
+					Long p = (Long) jobj.get("port");
+					// create executor for each port 
+					Executor e = new Executor(h, p);
+					temp.add(e);
+				}
+				topologies.get(id).setTworker(temp);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		conn.disconnect();
+	}
+
+	/**
+	 * Connect to the REST API and start to collect information
+	 * @param the command to execute
+	 */
+	public void Connect(String q) {
+		try {
+			url = new URL(hostport + q);
+			conn = (HttpURLConnection) url.openConnection();
+			conn.setRequestMethod("GET");
+			conn.setRequestProperty("Accept", "application/json");
+			if (conn.getResponseCode() != 200) {
+				throw new RuntimeException("Failed : http error code" + conn.getResponseCode());
+			}
+
+			br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+		} catch (MalformedURLException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * initialize or update the topology status
+	 * @param s , topology name
+	 * @param ini, is new or not 
+	 * @param topologies, the recored topology list
+	 */
+	public void topologySum(String s, boolean ini, HashMap<String, Topology> topologies) {
+		topologySpoutInitial(topologies.get(s).compo, s, ini, topologies);
+	}
+
+	/**
+	 * initialize or update each component of the topology and its corresponding status
+	 * @param com, the component collection for the given topology name
+	 * @param tid, topology name
+	 * @param ini, if it is new or old one
+	 * @param topologies, the topology collection
+	 */
+	public void topologySpoutInitial(HashMap<String, Component> com, String tid, boolean ini,
+			HashMap<String, Topology> topologies) {
+		Connect("/api/v1/topology/" + tid);
+		JSONArray stats = null;
+		JSONArray topo = null;
+		JSONArray tooo = null;
+		String spoutid = "";
+		long emit = 0;
+		try {
+			while ((output = br.readLine()) != null) {
+				JSONParser parser = new JSONParser();
+				Object obj = parser.parse(output);
+				JSONObject jobj = (JSONObject) obj;
+				// check the type of return value
+				// System.out.println(jobj.getClass().getName());
+				stats = (JSONArray) jobj.get("topologyStats");
+				topo = (JSONArray) jobj.get("spouts");
+				tooo = (JSONArray) jobj.get("bolts");
+				if (topo.size() > 0) {
+					for (int i = 0; i < topo.size(); i++) {
+						if (ini == true) {
+							obj = topo.get(0);
+							jobj = (JSONObject) obj;
+							spoutid = (String) jobj.get("spoutId");
+							long thread = (Long) jobj.get("executors");
+							Component c = new Component(spoutid, thread, true);
+							long failed = (Long) jobj.get("failed");
+							topologies.get(tid).setFailed(failed);
+							com.put(c.cid, c);
+							topologies.get(tid).setCompo(com);
+
+						} else {
+							obj = topo.get(0);
+							jobj = (JSONObject) obj;
+							spoutid = (String) jobj.get("spoutId");
+							Long lastemit = (Long) jobj.get("emitted");
+							Long lasttrans = (Long) jobj.get("transferred");
+							topologies.get(tid).getCompo().get(spoutid).setLast(lastemit, lasttrans);
+							emit = lastemit;
 						}
 					}
+					updateComponentThread(tid, spoutid, topologies, ini, emit, true);
+					topologyBoltInitial(tid, ini, topologies, tooo);
+					updateTopolgoyStats(tid, stats, topologies);
+					if (ini == true){
+						topologies.get(tid).initopology();
+					}
+				}
+				// if the component are not initialized yet, just remove the
+				// topology and update later
+				else {
+					topologies.remove(tid);
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+//		 conn.disconnect();
+	}
+
+	/**
+	 * update the topology status, including the latency and emit number and ack and fail amount
+	 * both all time values and 10min values are collected can be used for further analysis
+	 * @param tid
+	 * @param stats
+	 * @param topologies
+	 */
+	public void updateTopolgoyStats(String tid, JSONArray stats, HashMap<String, Topology> topologies) {
+//		long emitall = 0;
+		long emitlatest = 0;
+		String latencyall = "";
+//		String latencylatest = "";
+		long ackall = 0;
+//		long acklatest = 0;
+//		long failall = 0;
+//		long faillatest = 0;
+		
+		for (int i = 0; i < stats.size(); i++) {
+			Object obj = stats.get(i);
+			JSONObject jobj = (JSONObject) obj;
+			String timeframe = (String) jobj.get("window");
+			if(timeframe.contains("all-time")){
+//				emitall = (Long)jobj.get("emitted");
+				latencyall = (String)jobj.get("completeLatency");
+				ackall = (Long) jobj.get("acked");
+//				if(jobj.get("failed")!= null)
+//					failall = (Long) jobj.get("failed");
+				}
+				else if(timeframe.equals("600")){
+					emitlatest = (Long)jobj.get("emitted");
+//					latencylatest = (String)jobj.get("completeLatency");
+//					acklatest = (Long) jobj.get("acked");
+//					if(jobj.get("failed")!= null)
+//						faillatest = (Long) jobj.get("failed");
+				}
+		}
+		Topology t = topologies.get(tid);
+		t.setSystememit(emitlatest / 600.0);
+		t.setSystemlatency(Double.valueOf(latencyall));
+		double rate = (t.getFailed() * 1.0) / (ackall + t.getFailed());
+		t.setFailrate(Methods.formatter.format(rate));
+	}
+
+	/**
+	 * initialize the bolt
+	 * @param id
+	 * @param ini
+	 * @param topologies
+	 * @param bolt , the array bolts collected from REST API
+	 */
+	public void topologyBoltInitial(String id, boolean ini, HashMap<String, Topology> topologies, JSONArray bolt) {
+		HashMap<String, Long> compos = new HashMap<String, Long>();
+		JSONArray temp = bolt;
+		for (int i = 0; i < temp.size(); i++) {
+			Object obj = temp.get(i);
+			JSONObject jobj = (JSONObject) obj;
+			String boltid = (String) jobj.get("boltId");
+			if (ini == true) {
+				long thread = updateComponentThread(id, boltid, topologies, ini, 0, false);
+				compos.put(boltid, thread);
+			}
+			// update the components
+			else {
+				Long executed = (Long) jobj.get("executed");
+				Long emitted = (Long) jobj.get("emitted");
+				Long transferred = (Long) jobj.get("transferred");
+				String latency = (String) jobj.get("executeLatency");
+				String processlat = (String) jobj.get("processLatency");
+				Component c = topologies.get(id).getCompo().get(boltid);
+				c.setLast(emitted, transferred);
+//				c.setExecute(executed);
+
+				double latencyupdate = Double.valueOf(Methods.formatter.format(1000 / Double.valueOf(latency)));
+				c.updateArr_Ser(latencyupdate, false);
+				c.setExeLatency(Double.valueOf(latency));
+				c.setProcLatency(Double.valueOf(processlat));
+				updateComponentThread(id, boltid, topologies, ini, emitted, false);
+
+			}
+		}
+		if (ini == true) {
+			Map<String, Long> bolts = orderCompos(compos);
+			topologies.get(id).setBolts(bolts);
+		}
+		// conn.disconnect();
+	}
+
+	/**
+	 * ordering the bolts according to their name 
+	 * @param temp
+	 * @return
+	 */
+	public Map<String, Long> orderCompos(HashMap<String, Long> temp) {
+		Map<String, Long> map = new TreeMap<String, Long>(temp);
+		return map;
+	}
+
+	// the spout transferrred amount and uptime, to get the arrvial rate of
+	// tuples
+	// can only call after running 10mins
+	
+	/**
+	 * get the spout information 
+	 * @param tid
+	 * @param cid   spout id 
+	 * @param topologies
+	 * @return
+	 */
+
+	public double freqInfo(String tid, String cid, HashMap<String, Topology> topologies) {
+		Connect("/api/v1/topology/" + tid + "/component/" + cid);
+		double result = 0;
+//		Object objj= null;
+		JSONObject jobjj = null;
+		try {
+			while ((output = br.readLine()) != null) {
+				JSONParser parser = new JSONParser();
+				Object obj = parser.parse(output);
+				JSONObject jobj = (JSONObject) obj;
+				JSONArray temp = (JSONArray) jobj.get("spoutSummary");
+				search:
+					for(int i = 0; i<temp.size(); i++){
+						Object o = temp.get(i);
+						JSONObject jo = (JSONObject) o;
+						String timeframe = (String) jo.get("window");
+						if(timeframe.equals("600")){
+//							objj = o;
+							jobjj =jo;
+							break search;
+						}
+				}
+				Long emitted = (Long) jobjj.get("emitted");
+				Long uptime = topologies.get(tid).getUptime();
+				if(uptime<600)
+					result = freqCal(uptime, emitted);
+				else
+					result = freqCal((long)600, emitted);
+				
+//				System.out.println("freqcal "+ "uptime "+ uptime+ " emitted " + emitted+ " , "+result);
+//				System.out.println("the result is inside freqInfo is "+result);
+				topologies.get(tid).getCompo().get(cid).setTotalprocess(result);
+//				System.out.println("the result after setting is inside freqInfo is "+result);
+			}
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		conn.disconnect();
+		return result;
+
+	}
+
+	/**
+	 * calculate the emit rate 
+	 * @param uptime
+	 * @param emitted
+	 * @return
+	 */
+	public double freqCal(Long uptime, Long emitted) {
+		DecimalFormat formatter = new DecimalFormat("#0.00");
+		double result = 0;
+		result = Double.valueOf(formatter.format(emitted / uptime));
+		return result;
+	}
+
+	/**
+	 * Calculate the service rate, where the service time include the time spent on buffer and ack 
+	 * @param id
+	 * @param topologies
+	 * @return
+	 */
+
+	public double serviceRate(String id, HashMap<String, Topology> topologies) {
+		
+		Connect("/api/v1/topology/" + id);
+		double result = 0;
+		try {
+			while ((output = br.readLine()) != null) {
+				JSONParser parser = new JSONParser();
+				Object obj = parser.parse(output);
+				JSONObject jobj = (JSONObject) obj;
+				// spoutSummary or boltStats
+				Long workers = (Long) jobj.get("workersTotal");
+				//set the worker number for each topology
+				topologies.get(id).setWorkers(workers);
+				JSONArray temp = (JSONArray) jobj.get("topologyStats");
+				obj = temp.get(0);
+				jobj = (JSONObject) obj;
+				String servicetime = (String) jobj.get("completeLatency");
+				result = Double.valueOf(Methods.formatter.format(1000 / Double.valueOf(servicetime)));
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		conn.disconnect();
+		return result;
+	}
+
+	
+	/**
+	 * get the entire execution time for each component in a topology 
+	 */
+	 public double executionTotaltime(String id, HashMap<String, Topology> topologies, PriorityQueue pq) {
+			
+			Connect("/api/v1/topology/" + id);
+			double result = 0;
+			try {
+				while ((output = br.readLine()) != null) {
+					JSONParser parser = new JSONParser();
+					Object obj = parser.parse(output);
+					JSONObject jobj = (JSONObject) obj;
+					// spoutSummary or boltStats
+					Long workers = (Long) jobj.get("workersTotal");
+					//set the worker number for each topology
+					topologies.get(id).setWorkers(workers);
+					JSONArray temp = (JSONArray) jobj.get("topologyStats");
+					Object objt = temp.get(0);
+					JSONObject jobjt = (JSONObject) objt;
+					String complete = (String) jobjt.get("completeLatency");
+					double completelat = Double.valueOf(complete);
 					
-				 if(logchange){
-					 Methods.writeFile(sen, "log.txt");
-				 }
+					HashMap<String,Double> buffer = pq.getBuffertime();
+					JSONArray temparray = (JSONArray) jobj.get("bolts");
+					double sumlatency = 0.0;
+					for(int i = 0 ; i<temparray.size() ; i++){
+						Object o = temparray.get(i);
+						JSONObject jo = (JSONObject) o;
+						String templatencyupdate = (String)jo.get("executeLatency");
+//						System.out.println(jo.get("executeLatency").getClass().getName());
+						sumlatency += Double.valueOf(templatencyupdate);
+//						System.out.println("inside execution total time in dataretvial for templatencyupdate "+ templatencyupdate);
+//						
+						result = Double.valueOf(Methods.formatter.format(1000 / Double.valueOf(sumlatency)));
+					}
+					buffer.put(id,completelat-sumlatency);
+					System.out.println("the complete latency is "+completelat+" , the sum latency is "+sumlatency+" , the buffer time is "+(completelat-sumlatency));
+					sumlatency = 0;
+//					obj = temp.get(0);
+//					jobj = (JSONObject) obj;
+//					String servicetime = (String) jobj.get("executeLatency");
+//					result = Double.valueOf(Methods.formatter.format(1000 / Double.valueOf(servicetime)));
+				}
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (ParseException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-//			System.out.println("values " +topologies.toString());
 			conn.disconnect();
-			
-			
+			return result;
 		}
-
-//	public static void main(String[] args) throws InterruptedException, IOException {
-//	
-//		StormREST sr = new StormREST("http://115.146.85.187:8080");
-//
-//	//	String freq = args[0];
-//	
-//		sr.Topologyget();
-//		System.out.println(sr.topologies);
-////		sr.Topologyinfo();
-////		sr.topologySum();
-////		for(Topology t: sr.topologies.values()){
-////			System.out.println(t.getSpout());
-////			System.out.println(t.getBolts());
-////		}
-////		System.out.println(sr.workers);
-//	}
-
-//	// get the active topology info
-	public void Topologyinfo(HashMap<String, Topology> topologies){
-//		System.out.println("topologyinfo");
-//		System.out.println("size "+topologies.size());
-		if (topologies.size() == 0)
-			System.out.println("no topology is working at the moment");
-		else{
-			for(String s : topologies.keySet()){
-			//	System.out.println("key is "+e.getKey());
-//				System.out.println("toinfo "+s);
-				topologyworker(s, topologies);
-			}
-		
-		
-//			try {
-//				File f = new File(Constants.topologyworker);
-//				FileWriter fw = new FileWriter(f);
-				for(Entry<String, Topology> e : topologies.entrySet()){
-					String time = Methods.formattime();
-////					fw.write(time +" , "+ e.getKey() + " , "+ e.getValue().tworker.toString()+"\n");
-////					fw.flush();
-					String sen = e.getKey() + " , "+ e.getValue().tworker.toString()+"\n";
-//					System.out.println(sen);
-					Methods.writeFile(sen, "tworkers.txt");
-				}
-//				fw.close();
-//			}catch (IOException e1) {
-//				// TODO Auto-generated catch block
-//				e1.printStackTrace();
-//				}
-		}
-	}
-//	
-//	
-//	// get the worker information of each topology
-	public void topologyworker(String id, HashMap<String, Topology> topologies){
-		Connect("/api/v1/topology-workers/"+id);
-		try{
-			while((output = br.readLine()) != null){
-				JSONParser parser = new JSONParser();
-				Object obj = parser.parse(output);
-				JSONObject jobj = (JSONObject)obj;
-				
-				// check the type of return value
-				
-			    JSONArray topo = (JSONArray) jobj.get("hostPortList");
-			   	ArrayList<Executor> temp = new ArrayList<Executor>();
-			    for (int i = 0 ; i< topo.size(); i++){
-					obj = topo.get(i);
-					jobj = (JSONObject) obj;
-//					System.out.println(jobj.get("port").getClass().getName());
-					String h = (String)jobj.get("host");
-					
-					Long p = (Long)jobj.get("port");
-					Executor e = new Executor(h, p);
-					temp.add(e);
-//					if(topologies.get(id).getTworker().containsKey((String)jobj.get("host"))){
-//						topologies.get(id).getTworker().get((String)jobj.get("host")).add((Long)jobj.get("port"));
-//					}
-//					else{
-//						 ArrayList<Long> ports = new ArrayList<Long>();
-//						 ports.add((Long)jobj.get("port"));
-//						 topologies.get(id).getTworker().put((String)jobj.get("host"), ports);
-//							topologies.put((String)jobj.get("name"), (String)jobj.get("id"));
-						}
-			    topologies.get(id).setTworker(temp);
-					}
-//				System.out.println(topologies.get(id));
-			}
-		catch(IOException e){
-			e.printStackTrace();
-		} catch (ParseException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		conn.disconnect();
-	}
-
-	public void Connect(String q){
-		try {
-			url = new URL(hostport+q);
-			conn = (HttpURLConnection) url.openConnection();
-			conn.setRequestMethod("GET");
-			conn.setRequestProperty("Accept", "application/json");
-			if (conn.getResponseCode() != 200){
-				throw new RuntimeException("Failed : http error code"+ conn.getResponseCode());
-				}
-
-			br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-		}
-			catch (MalformedURLException e){
-				e.printStackTrace();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-	}
-//	
-
-//	
-	public void topologySum(String s, boolean ini, HashMap<String, Topology> topologies){
-//		System.out.println("topology size "+topologies.size());
 	
-//		for(Entry<String, Topology> e: topologies.entrySet()){
-//			System.out.println("topology sum");
-				topologySpoutInitial(topologies.get(s).compo, s, ini,topologies);
-				
-//				topologyBoltInitial(s,ini,topologies);
-			
-				if (ini == true)
-					topologies.get(s).initopology();
-//				System.out.println(e.getKey() + e.getValue().compo.toString());
-//				t.printTopology();
-//				System.out.println(s + "after bolts update "+t.compo.toString());
-//				System.out.println("com is "+ com.toString());
-					
-//		}
-//		for(Topology t: topologies.values()){
-//			System.out.println(t.tid + " , "+ t.toString());
-//			t.toString();
-//		}
-	}
-//	
-	//get the spout and bolt of each topology
-	public void topologySpoutInitial(HashMap<String,Component> com, String tid, boolean ini,HashMap<String, Topology> topologies){
-	
-		Connect("/api/v1/topology/"+tid);
-		JSONArray stats = null;
-		JSONArray topo = null;
-		JSONArray tooo = null;
-		String spoutid ="";
-		long emit = 0;
-		try{
-		
-			while((output = br.readLine()) != null){
-				JSONParser parser = new JSONParser();
-				Object obj = parser.parse(output);
-				JSONObject jobj = (JSONObject)obj;
-				
-			
-			
-				// check the type of return value
-//				System.out.println(jobj.getClass().getName());
-			
-				stats = (JSONArray)jobj.get("topologyStats");
-				topo = (JSONArray)jobj.get("spouts");
-				tooo = (JSONArray)jobj.get("bolts");
-			
-			    // only allow one spout for each topology
-			    for (int i = 0; i<topo.size() ; i++){
-//			    System.out.println("get output "+topo);
-			        if(ini == true){
-			        	obj = topo.get(0);
-			        	jobj = (JSONObject) obj;
-//					topologies.get(id).getTworker().put((String)jobj.get("host"), (Long)jobj.get("port"));
-			//		System.out.println("latency is "+(String)jobj.get("completeLatency"));
-//							topologies.put((String)jobj.get("name"), (String)jobj.get("id"));
-			        	spoutid = (String)jobj.get("spoutId");
-//			    	System.out.println("spout id "+spoutid);
-//			        	long thread = updateComponentThread(tid, spoutid, topologies);
-			        	long thread = (Long)jobj.get("executors");
-//			    	topologies.get(id).setSpout(new Spout(spoutid));
-			        	Component c = new Component(spoutid, thread, true);
-			    	
-			        	com.put(c.cid,c);
-			        	topologies.get(tid).setCompo(com);
-			        	
-			        }
-			        else{
-			        	
-			        	obj = topo.get(0);
-			        	jobj = (JSONObject) obj;
-			        	spoutid = (String)jobj.get("spoutId");
-			        	Long lastemit = (Long)jobj.get("emitted");
-			        	Long lasttrans = (Long)jobj.get("transferred");
-			        	
-			        	
-			        
-			        	topologies.get(tid).getCompo().get(spoutid).setLast(lastemit, lasttrans);
-			        	emit  =lastemit;
-//						topologies.get(tid).getCompo().get(spoutid).setTotalprocess(temp);
-			        }
-//			        updateComponentThread(tid, spoutid,topologies,ini,lastemit);
-//			    	System.out.println("add new component "+ topologies.get(tid).getCompo().size());
-			    }
-			   
-			   
-			}
-			 updateComponentThread(tid, spoutid,topologies,ini,emit,true);
-			 topologyBoltInitial(tid, ini, topologies, tooo);
-			 updateTopolgoyStats(tid, stats, topologies);
-		}
-		catch(IOException e){
-			e.printStackTrace();
-		} catch (ParseException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-//		conn.disconnect();
-	
-	}
-//	
-	public void updateTopolgoyStats(String tid, JSONArray stats, HashMap<String, Topology> topologies){
-//		System.out.println("topolgoy stats ini "+tid);
-
-		Object obj = stats.get(0);
-	    JSONObject jobj =(JSONObject) obj;
-//	 	System.out.println("updatetoplogystats "+jobj.get("emitted").getClass().getName());
-	   
-		long emit = (Long)jobj.get("emitted");
-//		double emittemp = Double.valueOf(Methods.formatter.format(emit));
-		String latency = (String)jobj.get("completeLatency");
-		
-		topologies.get(tid).setSystememit(emit/600.0);
-		
-		
-		topologies.get(tid).setSystemlatency(Double.valueOf(latency));
-	}
-	public void topologyBoltInitial(String id, boolean ini,HashMap<String, Topology> topologies, JSONArray bolt){
-					HashMap<String, Long> compos = new HashMap<String,Long>();
-		//			while((output = br.readLine()) != null){
-		//				JSONParser parser = new JSONParser();
-		//				obj = parser.parse(output);
-		//				jobj = (JSONObject)obj;	
-		//				
-		//				// check the type of return value
-		////				System.out.println(jobj.getClass().getName());
-		//				JSONArray temp = (JSONArray)jobj.get("bolts");
-						JSONArray temp = bolt;
-		//				ArrayList<Bolt> b = new ArrayList<Bolt>();
-						for (int i = 0 ; i< temp.size(); i++){
-							Object obj = temp.get(i);
-							JSONObject jobj = (JSONObject) obj;
-							
-							String boltid = (String)jobj.get("boltId");
-//							System.out.println("bolt id "+boltid);
-		//					b.add(new Component(boltid));
-							if(ini == true){
-								long thread = updateComponentThread(id, boltid,topologies,ini,0,false);
-//								long thread = (Long)jobj.get("executors");
-								compos.put(boltid, thread);
-							}
-							
-							//update the components
-							else{
-								Long executed = (Long)jobj.get("executed");
-								Long emitted = (Long)jobj.get("emitted");
-								Long transferred = (Long)jobj.get("transferred");
-//								System.out.println("need to check the class type of execute latency for "+boltid);
-								String latency = (String)jobj.get("executeLatency");
-								Component c =  topologies.get(id).getCompo().get(boltid);
-								c.setLast(emitted, transferred);
-								c.setExecute(executed);
-								
-								
-								double latencyupdate = Double.valueOf(Methods.formatter.format(1000/Double.valueOf(latency)));
-							
-								c.updateArr_Ser(latencyupdate, false);
-								c.setExeLatency(Double.valueOf(latency));
-//								c.updateArr_Ser(numincoming, false);
-//								for(String s : c.threads.keySet()){
-//									c.threads.get(s).setCompoemit(emitted);
-//								}
-//								c.updateArr_Ser(numincoming, arr);
-								updateComponentThread(id, boltid,topologies,ini,emitted,false);
-//								long thread = (Long)jobj.get("executors");
-								
-//								for(ComponentThread ct: topologies.get(id).getCompo().get(boltid).getThreads().values()){
-//									int index = 
-//									System.out.println("bolt init transnext is for "+boltid+" , "+transnext);
-//									ct.setProb(ct.getAck()*1.0/transnext);
-////									System.out.println("bolt ini set"+id+" , "+boltid+"ack "+ct.getAck());
-//								}
-//								transnext = transferred;
-								
-							}
-		//					Component c = new Component(boltid,thread);
-		//					com.add(c);
-							
-		//					System.out.println("add new bolt "+c.toString());
-		//					if (i == 0){
-		//						parallel = String.valueOf(jobj.get("executors"));
-		//					}
-					   }
-						if(ini == true){
-							Map<String, Long> bolts = orderCompos(compos);
-							topologies.get(id).setBolts(bolts);
-//							System.out.println("bolts size is "+bolts.size()+"in bolt ini");
-						}
-//						conn.disconnect();
-	}
-
-	public Map<String, Long> orderCompos(HashMap<String, Long> temp){
-		Map<String, Long> map = new TreeMap<String, Long>(temp);
-	
-		return map;
-	}
-	
-	
-//	the spout transferrred amount and uptime, to get the arrvial rate of tuples
-	//can only call after running 10mins
-	public double freqInfo(String tid, String cid, HashMap<String, Topology> topologies){
-		Connect("/api/v1/topology/"+tid+"/component/"+cid);
-		double result = 0;
-		try{
-	
-			while((output = br.readLine()) != null){
-				JSONParser parser = new JSONParser();
-				Object obj = parser.parse(output);
-				JSONObject jobj = (JSONObject)obj;
-				// check the type of return value
-//				System.out.println(jobj.get("executorStats").getClass().getName());
-				//spoutSummary or boltStats
-				JSONArray temp = (JSONArray)jobj.get("spoutSummary");
-				int i = temp.size()-1;
-				obj = temp.get(i);
-				jobj = (JSONObject) obj;
-				Long transferred = (Long)jobj.get("transferred");
-				String wind = (String)jobj.get("windowPretty");
-				String uptime = topologies.get(tid).getUptime();
-				
-//				System.out.println("up "+uptime);
-			
-		//		System.out.println("hour "+hour);
-//				String min = uptime.split("m")[0];
-//				String sec = uptime.split("s")[0];
-				
-				if(!uptime.contains("h") && Double.valueOf(uptime.split("m")[0])<10.0){
-					result =  freqCal(uptime.split("m")[0],transferred);
-					System.out.println("less than 10min");
-//					System.out.println("minute "+uptime.split("m")[0]);
-				}
-				else 
-					result = freqCal("10",transferred);
-				topologies.get(tid).getCompo().get(cid).setTotalprocess(result);
-//			    System.out.println("arr "+ result);
-			   }
-			
-		}
-		catch(IOException e){
-			e.printStackTrace();
-		} catch (ParseException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		conn.disconnect();
-		return result;
-		
-	}
-	
-	//calculate the arrival rate 
-	public double freqCal(String uptime, Long transferred){
-//		System.out.println("uptime to freqcAL "+ uptime);
-		DecimalFormat formatter = new DecimalFormat("#0.00");
-//	    System.out.println(formatter.format(t1*t2));
-//		String t = uptime.split("m")[0];
-//		Double temp = Double.valueOf(t);
-		double result = 0;
-		result = Double.valueOf(formatter.format(transferred/(60.0*Double.valueOf(uptime))));
-		
-	    return result;
-	}
-
-	public double processavg(String uptime, double totalprocess){
-		double result = 0;
-		String h="0";
-		String m ="0";
-		String s = "0";
-		if(uptime.contains("h")){
-			h = uptime.split("h")[0];
-			uptime = uptime.split("h")[1];
-			}
-		
-//		System.out.println("h "+h+", "+uptime);
-		if(uptime.contains("m")){
-			m = uptime.split("m")[0];
-			uptime = uptime.split("m")[1];
-		}
-//		System.out.println("m "+m+", "+uptime);
-		
-		s = uptime.split("s")[0];
-
-//		System.out.println("s "+s);
-		long timeinsec = Integer.valueOf(h)*3600+Integer.valueOf(m)*60+Integer.valueOf(s);
-//		System.out.println("timeinsec "+timeinsec);
-		result = totalprocess*600/timeinsec;
-		return result;
-	}
-	public double serviceRate(String id,HashMap<String, Topology> topologies){
-//		System.out.println("data retrival service Rate pre A "+id);
-		Connect("/api/v1/topology/" + id);
-		double result = 0;
-//		System.out.println("data retrival service Rate A");
-		try{	
-			while((output = br.readLine()) != null){
-		
-				JSONParser parser = new JSONParser();
-				Object obj = parser.parse(output);
-				JSONObject jobj = (JSONObject)obj;
-				// check the type of return value
-//				System.out.println(jobj.get("topologyStats").getClass().getName());
-				//spoutSummary or boltStats
-				Long workers = (Long)jobj.get("workersTotal");
-				topologies.get(id).setWorkers(workers);
-//				System.out.println("data retrival service Rate B");
-//				System.out.println("workers "+workers);
-				JSONArray temp = (JSONArray)jobj.get("topologyStats");
-				obj = temp.get(0);
-				jobj = (JSONObject)obj;
-//				String s = (String)jobj.get("windowPretty");
-				
-				String servicetime = (String)jobj.get("completeLatency");
-//				System.out.println("data retrival service Rate C");
-//				System.out.println("data retrival service rate service time "+servicetime);
-				result = Double.valueOf(Methods.formatter.format(1000/Double.valueOf(servicetime)));
-//				System.out.println("service rate "+result);
-			}
-		}
-		catch(IOException e){
-			e.printStackTrace();
-		} catch (ParseException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		conn.disconnect();
-		return result;
-	}
-
-	public long updateComponentThread(String tid, String cid,HashMap<String, Topology> topologies, boolean ini, long emitted, boolean spout){
-		Connect("/api/v1/topology/"+tid+"/component/"+cid);
+	/**
+	 * Collect the latest information for each component thread
+	 * @param tid
+	 * @param cid
+	 * @param topologies
+	 * @param ini
+	 * @param emitted
+	 * @param spout
+	 * @return the number of thread for the given component
+	 */
+	public long updateComponentThread(String tid, String cid, HashMap<String, Topology> topologies, boolean ini,
+			long emitted, boolean spout) {
+		Connect("/api/v1/topology/" + tid + "/component/" + cid);
 		Long result = null;
-		HashMap<String,ComponentThread> ctmap = new HashMap<String, ComponentThread>();
-		try{
-			
-			while((output = br.readLine()) != null){
+		HashMap<String, ComponentThread> ctmap = new HashMap<String, ComponentThread>();
+		try {
+			while ((output = br.readLine()) != null) {
 				JSONParser parser = new JSONParser();
 				Object obj = parser.parse(output);
-				JSONObject jobj = (JSONObject)obj;
-				result = (Long)jobj.get("executors");
-				
-				if(ini == true){	
-			//	System.out.println(tid+" , "+cid+", "+result);
+				JSONObject jobj = (JSONObject) obj;
+				result = (Long) jobj.get("executors");
+				if (ini == true) {
 					return result;
+				} else {
+					JSONArray systemperform;
+					// it is bolt 
+					if (spout == false) {
+						systemperform = (JSONArray) jobj.get("boltStats");
+					} else {
+						systemperform = (JSONArray) jobj.get("spoutSummary");
 					}
-				else{
-					JSONArray systemperform ;
-					if(spout == false){
-						systemperform = (JSONArray)jobj.get("boltStats");
-					}
-					else{
-						systemperform = (JSONArray)jobj.get("spoutSummary");
-					}
-						JSONArray temp = (JSONArray)jobj.get("executorStats");
-				    	updateComponentsys(tid, cid, systemperform, topologies,spout);
-//				System.out.println("result size "+temp.size());
+					JSONArray temp = (JSONArray) jobj.get("executorStats");
+					updateComponentsys(tid, cid, systemperform, topologies, spout);
 					ArrayList<Executor> exe;
 					ArrayList<Executor> check = new ArrayList<Executor>();
-					
-//					System.out.println("executor "+topologies.get(tid).getCompo().toString()+ " cid "+cid);
-					if(topologies.get(tid).getCompo().get(cid).getExecutors().size()>0){
+
+					if (topologies.get(tid).getCompo().get(cid).getExecutors().size() > 0) {
 						exe = topologies.get(tid).getCompo().get(cid).getExecutors();
-			
-				//for checking if an executor has been removed
+						// for checking if an executor has been removed
 						check.addAll(exe);
 						ctmap = topologies.get(tid).getCompo().get(cid).getThreads();
-					}
-					else{
+					} else {
 						exe = new ArrayList<Executor>();
-					
-						ctmap = new HashMap<String,ComponentThread>();
+						ctmap = new HashMap<String, ComponentThread>();
 					}
-					for(int i = 0; i<temp.size(); i++){
+					for (int i = 0; i < temp.size(); i++) {
 						obj = temp.get(i);
-						jobj = (JSONObject)obj;	
-						Long port = (Long)jobj.get("port");
-						String host = (String)jobj.get("host");
-//						Executor e = new Executor(host,port,tid);
-						Executor e = new Executor(host,port);
-						if(!exe.contains(e)){
+						jobj = (JSONObject) obj;
+						Long port = (Long) jobj.get("port");
+						String host = (String) jobj.get("host");
+						Executor e = new Executor(host, port);
+						if (!exe.contains(e)) {
 							exe.add(e);
-//							topologies.get(tid).getCompo().get(cid).setExecutors(exe);
 						}
-						if(check.contains(e)){
+						if (check.contains(e)) {
 							check.remove(e);
 						}
 						ComponentThread ct;
-						String ctid = (String)jobj.get("id");
-//					Long emit = (Long)jobj.get("emitted");
+						String ctid = (String) jobj.get("id");
 						long ack;
-						if(spout ==false){
-							Long execute = (Long)jobj.get("executed");
-							String processlatency = (String)jobj.get("processLatency");
-							String executelatency = (String)jobj.get("executeLatency");
-							ack = (Long)jobj.get("acked");
-							if(ctmap.containsKey(ctid)){
+						if (spout == false) {
+							Long execute = (Long) jobj.get("executed");
+							String processlatency = (String) jobj.get("processLatency");
+							String executelatency = (String) jobj.get("executeLatency");
+							ack = (Long) jobj.get("acked");
+							if (ctmap.containsKey(ctid)) {
 								ct = ctmap.get(ctid);
-							}
-							else{
-								ct = new ComponentThread(ctid);
+							} else {
+								ct = new ComponentThread(cid, ctid);
 								ctmap.put(ctid, ct);
 							}
-							ct.updateThread(execute, Double.valueOf(executelatency), Double.valueOf(processlatency), ack,e);
-						}
-						else{
-							Long transfer = (Long)jobj.get("transferred");
-							String processlatency = (String)jobj.get("completeLatency");
-//							String executelatency = (String)jobj.get("executeLatency");
-							ack = (Long)jobj.get("acked");
-							if(ctmap.containsKey(ctid)){
+							ct.updateThread(execute, Double.valueOf(executelatency), Double.valueOf(processlatency),
+									ack, e);
+						} else {
+							Long transfer = (Long) jobj.get("transferred");
+							String processlatency = (String) jobj.get("completeLatency");
+							ack = (Long) jobj.get("acked");
+							if (ctmap.containsKey(ctid)) {
 								ct = ctmap.get(ctid);
-							}
-							else{
-								ct = new ComponentThread(ctid);
+							} else {
+								ct = new ComponentThread(cid, ctid);
 								ctmap.put(ctid, ct);
 							}
-							ct.updateThread(transfer, Double.valueOf(processlatency), 0.0, ack,e);
+							ct.updateThread(transfer, Double.valueOf(processlatency), 0.0, ack, e);
 						}
-//							System.out.println("updatect "+ctid+" , "+emitted);
-							
 						ct.setCompoemit(emitted);
-						if(emitted!=0){
-							ct.setProb(ack*1.0/emitted);
-//							System.out.println("set prob for "+ctid+" , "+ack*1.0/emitted);
+						if (emitted != 0) {
+							ct.setProb(ack * 1.0 / emitted);
 						}
+						topologies.get(tid).getCschedule().put(ctid, host);
 					}
-					updateExecutors(tid,cid,check,exe, topologies);
-					}
+					updateExecutors(tid, cid, check, exe, topologies);
+
+				}
 			}
-			
-				topologies.get(tid).getCompo().get(cid).setThreads(ctmap);
-//				System.out.println("check executor "+topologies.get(tid).getCompo().get(cid).threads.toString());
-			
-			}
-		catch(IOException e){
+
+			topologies.get(tid).getCompo().get(cid).setThreads(ctmap);
+			// System.out.println("check executor
+			// "+topologies.get(tid).getCompo().get(cid).threads.toString());
+
+		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (ParseException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-//		conn.disconnect();	
-		
+		// conn.disconnect();
+
 		return result;
 	}
-	
-	public void updateComponentsys(String tid, String cid, JSONArray comstats,HashMap<String, Topology> topologies, boolean spout){
-	
-		Object obj = comstats.get(0);
-		JSONObject jobj = (JSONObject)obj;
-//		long executed = (Long)jobj.get("executed");
-		String latency;
-		if(spout == false)
-			latency= (String)jobj.get("executeLatency");
-		else
-			latency = (String)jobj.get("completeLatency");
-//		topologies.get(tid).getSystemcoemit().put(cid, executed/600);
-		topologies.get(tid).getSystemcolatency().put(cid, Double.valueOf(latency));
-//		System.out.println("update comopnet "+cid+ " latency with "+latency);
-	}
-	
-	public void updateExecutors(String tid, String cid, ArrayList<Executor> check, ArrayList<Executor> update,HashMap<String, Topology> topologies){
-		 if(check.size()>0){
-			 for(Executor e: check){
-				 update.remove(e);
-			 }
-		 }
-		 topologies.get(tid).getCompo().get(cid).setExecutors(update);
-	}
-	
-}
 
+	/**
+	 * update the component data for all time and latest time window
+	 * can be further extended if necessary, the data has been stored in the valuealltime and valuelatest
+	 * @param tid
+	 * @param cid
+	 * @param comstats
+	 * @param topologies
+	 * @param spout
+	 */
+	public void updateComponentsys(String tid, String cid, JSONArray comstats, HashMap<String, Topology> topologies,
+			boolean spout) {
+		//value collected for all the time
+		Map<String,String> valuealltime = new HashMap<String,String>();
+		//value collected for the latest 10min
+		Map<String,String> valuelatest = new HashMap<String,String>();
+		// get the all time value and the latest 10min value
+		String cl ="";
+		for (int i = 0; i < comstats.size(); i++) {
+			Object obj = comstats.get(i);
+			JSONObject jobj = (JSONObject) obj;
+			String timeframe = (String) jobj.get("window");
+			if((timeframe.contains("all-time")) || (timeframe.equals("600"))){
+				Long emitted = (Long)jobj.get("emitted");
+				Long transferred = (Long)jobj.get("transferred");
+				Long acked = (Long)jobj.get("acked");
+				Long failed = (Long)jobj.get("failed");
+				if(spout)
+					cl = (String)jobj.get("completeLatency");
+				else 
+					cl = (String)jobj.get("executeLatency");
+				if(timeframe.contains("all-time")){
+					valuealltime.put("emit", String.valueOf(emitted));
+					valuealltime.put("tranf", String.valueOf(transferred));
+					valuealltime.put("acked", String.valueOf(acked));
+					valuealltime.put("failed", String.valueOf(failed));
+					valuealltime.put("latency", cl);
+				}
+				else{
+					valuelatest.put("emit", String.valueOf(emitted));
+					valuelatest.put("tranf", String.valueOf(transferred));
+					valuelatest.put("acked", String.valueOf(acked));
+					valuelatest.put("failed", String.valueOf(failed));
+					valuelatest.put("latency", cl);
+				}
+			}
+		}
+		topologies.get(tid).getCompo().get(cid).setValuealltime(valuealltime);
+		topologies.get(tid).getSystemcolatency().put(cid, Double.valueOf(cl));
+	}
+
+	/**
+	 * remove the no-alive executors and update
+	 * @param tid
+	 * @param cid
+	 * @param check  the list of no longer alive executor
+	 * @param update  the list of original executor and new ones
+	 * @param topologies
+	 */
+	public void updateExecutors(String tid, String cid, ArrayList<Executor> check, ArrayList<Executor> update,
+			HashMap<String, Topology> topologies) {
+		if (check.size() > 0) {
+			for (Executor e : check) {
+				update.remove(e);
+			}
+		}
+		topologies.get(tid).getCompo().get(cid).setExecutors(update);
+	}
+
+	
+//	
+//	/**
+//	 * initialize or update the priority queue, with 1 for large , 2 for medium and 3 for small
+//	 * @param queue
+//	 */
+//	public void getQueue(ArrayList<PriorityQueue> queue){
+//			ArrayList<PriorityQueue> qu = queue;
+////		PriorityQueue q1 =  qu.get(0);
+////		PriorityQueue q2 = qu.get(1);
+////		PriorityQueue q3 = qu.get(2);
+//		
+//		ArrayList<ArrayList<String>> ini = new ArrayList<>();
+//		for(int i = 0 ;i <=2 ; i++){
+//			ini.add(new ArrayList<String>());
+//		}
+//			
+//		Connect("/api/v1/supervisor/summary");
+//
+//		try {
+//			while ((output = br.readLine()) != null) {
+//				JSONParser parser = new JSONParser();
+//				Object obj = parser.parse(output);
+//				JSONObject jobj = (JSONObject) obj;
+//				JSONArray topo = (JSONArray) jobj.get("supervisors");
+//				for (int i = 0; i < topo.size(); i++) {
+//					obj = topo.get(i);
+//					jobj = (JSONObject) obj;
+//					String host = (String) jobj.get("host");
+//					if(host.contains("l")){
+//							ini.get(0).add(host);
+//						}
+//					else if(host.contains("m")){
+//							ini.get(1).add(host);
+//					}
+//					else if(host.contains("s")){
+//							ini.get(2).add(host);
+//					}
+//				}
+//			}
+//			
+//		}
+//		catch (IOException e) {
+//			e.printStackTrace();
+//		} catch (ParseException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//		
+//		for(int i = 0 ; i<3 ; i++){
+//			PriorityQueue p = queue.get(i);
+//			p.setNames(ini.get(i));
+//			p.setSize(ini.get(i).size());
+//		}
+//	}
+//	
+//	/**
+//	 * build the existing queued host so that remove the ones no longer alive
+//	 * @param q1
+//	 * @param q2
+//	 * @param q3
+//	 * @return
+//	 */
+//	public ArrayList<ArrayList<String>> getExiqueue(PriorityQueue q1, PriorityQueue q2, PriorityQueue q3){
+//		ArrayList<String> n1 = q1.getNames();
+//		ArrayList<String> n2 = q2.getNames();
+//		ArrayList<String> n3 = q3.getNames();
+//		ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
+//		result.add(n1);
+//		result.add(n2);
+//		result.add(n3);
+//		return result;
+//	}
+//	
+
+//	 public static void main(String[] args) throws InterruptedException, IOException {
+//	
+//	 StormREST sr = new StormREST("http://115.146.86.60:8080");
+//	 PriorityQueue q1 = new PriorityQueue(1, 0, new ArrayList<String>());
+//	 PriorityQueue q2 = new PriorityQueue(2, 0, new ArrayList<String>());
+//	 PriorityQueue q3 = new PriorityQueue(3, 0, new ArrayList<String>());
+//	 // String freq = args[0];
+//	 ArrayList<PriorityQueue> queue = new ArrayList<PriorityQueue>();
+//	 queue.add(q1);
+//	 queue.add(q2);
+//	 queue.add(q3);
+//	 sr.getQueue(queue);
+////	 sr.Topologyget();
+//	 for(PriorityQueue pq : queue){
+//		 System.out.println(pq.toString());
+//	 }
+	// sr.Topologyinfo();
+	// sr.topologySum();
+	// for(Topology t: sr.topologies.values()){
+	// System.out.println(t.getSpout());
+	// System.out.println(t.getBolts());
+	// }
+	// System.out.println(sr.workers);
+//	 }
+}
