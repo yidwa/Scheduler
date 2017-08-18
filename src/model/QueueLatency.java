@@ -44,7 +44,7 @@ public class QueueLatency {
 	 * waiting time estimation for the queue
 	 * @return
 	 */
-	public double waittimeEstimating(){
+	public double waittimeEstimating(int numchannel){
 		uti = getUti();
 		System.out.println("uti for queue "+priority+" , "+uti);
 		double pm = waitProb();
@@ -58,7 +58,7 @@ public class QueueLatency {
 		double t11 = meanserv/(meanserv*(1-uti));
 		double cs = DataCollection.cv(ServicePt, meanserv);
 		double ca = DataCollection.cv(ArrivalPt, meanarrv);
-		double tt = 2*numChannel;
+		double tt = 2*numchannel;
 		double t2 = (ca+cs)/tt;
 //	    DecimalFormat formatter = new DecimalFormat("#0.000");
 //	    double result = t1*t2*1000000;

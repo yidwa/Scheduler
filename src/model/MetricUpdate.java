@@ -112,7 +112,14 @@ public class MetricUpdate implements Runnable {
 			System.out.println("metric update "+sen);
 //			System.out.println("priority check "+priority.size());
 			System.out.println("before optimiation ");
+			
+			
+			
+			// optimization for the model based scheuler
 			HashMap<String, String> mapping = Optimisation.cpuscheduelr(topologies, priority);
+			
+			
+			
 			System.out.println("after optimiation ");
 //			System.out.println("after cpuscheduler "+mapping.size());
 			String mappresult = "";

@@ -13,6 +13,7 @@ import general.PriorityQueue;
 import general.StormREST;
 import general.Topology;
 import opt.Optimisation;
+import opt.QoS_Opt;
 
 public class QueueUpdate implements Runnable {
 	
@@ -25,7 +26,7 @@ public class QueueUpdate implements Runnable {
 	HashMap<String, LinkedList<Double>> arr;
 	HashMap<String, LinkedList<Double>> ser;
 	
-	
+	HashMap<Integer, ArrayList<String>> mappingresult;
 
 	public QueueUpdate(StormREST sr,HashMap<String, Topology>  topologies, HashMap<String, Integer> priority, ArrayList<PriorityQueue> pq, 
 			HashMap<String, LinkedList<Double>> arr, HashMap<String, LinkedList<Double>> ser) {
@@ -38,7 +39,7 @@ public class QueueUpdate implements Runnable {
 //		this.metrics = new HashMap<String, Metrics>();
 		this.arr = arr;
 		this.ser = ser;
-		
+		this.mappingresult = new HashMap<>();
 //		for(Topology t: topologies.values()){
 //			Throughput thr = new Throughput(t.getTid(), t.getCompostruct(), t.getCompo());
 //			Latency lc = new Latency(t.getTid(), t.getCompostruct(),t.getCompo(), new ArrayList<Double>(), new ArrayList<Double>(), t.getTworker().size());
@@ -65,15 +66,15 @@ public class QueueUpdate implements Runnable {
 		  	q.getQl().setServicePt(updateLA(serv));
 		  	
 //		  	System.out.println("priority "+q.getPrioirty()+" has the size of "+size);
-		  	double estimation = q.getQl().waittimeEstimating();
+		  	double estimation = q.getQl().waittimeEstimating(size);
 		  	double buffertimetotal = 0.0;
 		  	for(String s: q.getBuffertime().keySet()){
 		  		buffertimetotal += q.getBuffertime().get(s);
 		  	}
 		  	double bufferaverage = buffertimetotal/q.getNames().size();
-		  	
+		  	q.setAvgbuf(bufferaverage);
 		  	//not including the time for execution
-		  	q.setWaittime(estimation+bufferaverage);
+		  	q.setWaittime(estimation);
 		  	System.out.println("the waiting time for queue "+pri +" just udpated with estimation "+estimation+ " and the buffertime averaget "+bufferaverage);
 	    }
 		
@@ -121,7 +122,7 @@ public class QueueUpdate implements Runnable {
 		
 			LinkedList<Double> temparr = new LinkedList<>();
 			LinkedList<Double> tempserv = new LinkedList<>();
-			
+		
 			for(PriorityQueue p : pq){
 				System.out.println("queue for "+ p.getPrioirty()+" ,size is "+p.getSize());
 				
@@ -131,7 +132,21 @@ public class QueueUpdate implements Runnable {
 //				System.out.println("update latency for "+p.getPrioirty());
 				if(p.getSize()>0)
 					updateLatency(pq, p.getPrioirty(), temparr, tempserv);
+				
+				System.out.println("before optimizaiton ");
+				System.out.println(p.getHosts().toString());
+				ArrayList<String> queuemapping = QoS_Opt.optimizedSolution(p, topologies);
+				System.out.println("after optmization ");
+				System.out.println(queuemapping.toString());
+				mappingresult.put(p.getPrioirty(), queuemapping);
 			}
+			
+			String mappresult = "";
+			for(int i : mappingresult.keySet()){
+				mappresult += mappingresult.get(i).toString();
+			}
+			System.out.println("mapping result "+mappresult);
+//			Methods.writeFile(mappresult, "schedule",false);
 //			Methods.writeFile(sen, "metrics.txt",true);
 //			    System.out.println("set metrics "+ thr+ " , "+ lat);
 //			    System.out.println("metric of "+s+" , "+metrics.get(s).latency+" , "+metrics.get(s).throughput);

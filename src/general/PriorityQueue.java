@@ -18,6 +18,7 @@ public class PriorityQueue {
 	QueueLatency ql;
 	Double waittime;
 	HashMap<String,Double> buffertime;
+	double avgbuf;
 
 	public PriorityQueue(int pri, int size, ArrayList<String> names){
 		this.prioirty = pri;
@@ -29,6 +30,7 @@ public class PriorityQueue {
 		this.ql = new QueueLatency(serv, arr, hosts.size(), pri);
 		this.waittime = 0.0;
 		this.buffertime = new HashMap<String,Double>();
+		this.avgbuf = 0.0;
 	}
 	
 	public ArrayList<String> getHosts() {
@@ -96,6 +98,14 @@ public class PriorityQueue {
 
 	public void setBuffertime(HashMap<String, Double> buffertime) {
 		this.buffertime = buffertime;
+	}
+
+	public double getAvgbuf() {
+		return avgbuf;
+	}
+
+	public void setAvgbuf(double avgbuf) {
+		this.avgbuf = avgbuf;
 	}
 	
 }
