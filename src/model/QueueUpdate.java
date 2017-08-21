@@ -75,7 +75,7 @@ public class QueueUpdate implements Runnable {
 		  	q.setAvgbuf(bufferaverage);
 		  	//not including the time for execution
 		  	q.setWaittime(estimation);
-		  	System.out.println("the waiting time for queue "+pri +" just udpated with estimation "+estimation+ " and the buffertime averaget "+bufferaverage);
+//		  	System.out.println("the waiting time for queue "+pri +" just udpated with estimation "+estimation+ " and the buffertime averaget "+bufferaverage);
 	    }
 		
 //	    public void updatethroughput(String tname, HashMap<String, ArrayList<Double>> cp, HashMap<String, ArrayList<Double>> ce,HashMap<String, Long> lp, HashMap<String, Long> lc){
@@ -130,29 +130,55 @@ public class QueueUpdate implements Runnable {
 				tempserv = p.getServ();
 			
 //				System.out.println("update latency for "+p.getPrioirty());
-				if(p.getSize()>0)
+				if(p.getSize()>0){
 					updateLatency(pq, p.getPrioirty(), temparr, tempserv);
 				
-				System.out.println("before optimizaiton ");
-				System.out.println(p.getHosts().toString());
-				ArrayList<String> queuemapping = QoS_Opt.optimizedSolution(p, topologies);
-				System.out.println("after optmization ");
-				System.out.println(queuemapping.toString());
-				mappingresult.put(p.getPrioirty(), queuemapping);
+					System.out.println("before optimizaiton ");
+					System.out.println(p.getHosts().toString());
+					ArrayList<String> queuemapping = QoS_Opt.optimizedSolution(p, topologies);
+					System.out.println("after optmization ");
+					System.out.println(queuemapping.toString());
+					if(!compareArrays(p.getHosts(), queuemapping))
+						mappingresult.put(p.getPrioirty(), queuemapping);
+					else{
+						mappingresult.put(p.getPrioirty(), new ArrayList<>());
+						System.out.println("mapping unchanged for queue "+ p.getPrioirty());
+					}
+				}
 			}
 			
 			String mappresult = "";
 			for(int i : mappingresult.keySet()){
-				mappresult += mappingresult.get(i).toString();
+				mappresult += i+" "+mappingresult.get(i).toString();
 			}
 			System.out.println("mapping result "+mappresult);
-//			Methods.writeFile(mappresult, "schedule",false);
+			Methods.writeFile(mappresult, "schedule",false);
 //			Methods.writeFile(sen, "metrics.txt",true);
 //			    System.out.println("set metrics "+ thr+ " , "+ lat);
 //			    System.out.println("metric of "+s+" , "+metrics.get(s).latency+" , "+metrics.get(s).throughput);
 		}
 			   
-
+		public static boolean compareArrays(ArrayList<String> a, ArrayList<String> b){
+			boolean result = true;
+			if(a==null && b==null)
+				return true;
+			if((a==null && b!= null)||(a!=null && b==null))
+				return false;
+			if(a.size()!=b.size())
+				return false;
+			else{
+				for(String d: a){
+					if(!b.contains(d))
+						return false;
+				}
+//				for(double d:b){
+//					if(!a.contains(d))
+//						return false;
+//				}
+			}
+			return result;
+		}
+		
 	@Override
 	public void run() {
 //		System.out.println("no metric update ");

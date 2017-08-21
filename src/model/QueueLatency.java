@@ -46,9 +46,9 @@ public class QueueLatency {
 	 */
 	public double waittimeEstimating(int numchannel){
 		uti = getUti();
-		System.out.println("uti for queue "+priority+" , "+uti);
+//		System.out.println("uti for queue "+priority+" , "+uti);
 		double pm = waitProb();
-		System.out.println("wait pro  "+priority+" , "+pm);
+//		System.out.println("wait pro  "+priority+" , "+pm);
 //		double t1 = 0;
 		if (meanserv == 0 || uti == 1){
 			System.out.println("mean serve frequency is 0 or the util is 1");
@@ -63,10 +63,11 @@ public class QueueLatency {
 //	    DecimalFormat formatter = new DecimalFormat("#0.000");
 //	    double result = t1*t2*1000000;
 	    double result_b = t11*t2;
+//	    System.out.println("t11 "+t11+" cs, ca "+cs+ " , "+ca+" , tt "+tt);
 //	    result += getExeLatency();
 //	    result = Double.valueOf(formatter.format(result));
 	    result_b = Double.valueOf(Methods.formatter.format(result_b));
-	    System.out.println("inside waiting time estimation : result_B"+ result_b);
+//	    System.out.println("inside waiting time estimation : result_B"+ result_b);
 		return result_b;
 	}
 	

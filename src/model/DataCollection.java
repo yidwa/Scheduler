@@ -51,10 +51,20 @@ public class DataCollection {
 				temp+=d*d;
 			}
 		}
-		temp = temp/values.size()/(mean*mean);
-//		System.out.println("result is "+ String.valueOf(temp));
-		
-		return temp-1.0;
+		if(mean!=0){
+			temp = temp/values.size()/(mean*mean);
+//			System.out.println("cv result is "+ String.valueOf(temp));
+		}
+		return temp;
 	}
-	
+
+//	public static void main(String[] args) {
+//		ArrayList<Double> values = new ArrayList<>();
+//		values.add(2.5);
+//		values.add(2.4);
+//		values.add(2.6);
+//		double mean =2.0;
+//		double d = DataCollection.cv(values, mean);
+//		System.out.println("d is "+d);
+//	}
 }

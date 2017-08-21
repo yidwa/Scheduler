@@ -68,7 +68,7 @@ public class CentralControl {
 			QueueUpdate qu = new QueueUpdate(sc.sr, cc.topologies, priority, cc.queues,cc.arr, cc.ser);
 			for(PriorityQueue pq : cc.queues){
 			   if(pq.size>0){
-				   System.out.println("");
+//				   System.out.println("");
 				   qu.updateLatency(cc.queues, pq.getPrioirty(), pq.getArr(), pq.getServ() );
 			   	}
 			   }

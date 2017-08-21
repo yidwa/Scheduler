@@ -16,7 +16,7 @@ public class dataretrival implements Runnable {
 	public HashMap<Integer, LinkedList<Double>> arrtemp;
 	public HashMap<Integer, LinkedList<Double>> servtemp;
 	//used for calculation temporarly
-	public ArrayList<Double> queuearr;
+	public ArrayList<ArrayList<Double>> queuearr;
 	public ArrayList<ArrayList<Double>> queueser;
 	
 	/**
@@ -38,7 +38,7 @@ public class dataretrival implements Runnable {
 //		this.arrtemp = new HashMap<Integer, LinkedList<Double>>();
 //		this.servtemp = new HashMap<Integer, LinkedList<Double>>();
 //		iniTemp(pq);
-		this.queuearr = new ArrayList<Double>();
+		this.queuearr = new ArrayList<ArrayList<Double>>();
 		this.queueser = new ArrayList<ArrayList<Double>>();
 		iniQueue(pq);
 	}
@@ -58,7 +58,8 @@ public class dataretrival implements Runnable {
 	 */
 	public void iniQueue(ArrayList<PriorityQueue> pq){
 		for(int i = 0 ;i<pq.size();i++){
-			Double d = 0.0;
+//			Double d = 0.0; 
+			ArrayList<Double> d = new ArrayList<Double>();
 			queuearr.add(d);
 			ArrayList<Double> ad = new ArrayList<Double>();
 			queueser.add(ad);
@@ -88,11 +89,15 @@ public class dataretrival implements Runnable {
 			int pri = priority.get(t.tid);
 //			System.out.println("inside update ratese in dataretvieal and the priority is "+pri);
 			serv = sr.executionTotaltime(t.tid, topologies, queues.get(pri-1));
-//			System.out.println("get "+t.tid+ " arrv is "+arrv+" , serv "+serv);
+			System.out.println("get "+t.tid+ " arrv is "+arrv+" , serv "+serv);
 			//update the traffic monitor for queues
 			
-			double temp = queuearr.get(pri-1);
-			temp += arrv;
+			ArrayList<Double> temp = queuearr.get(pri-1);
+			temp.add(arrv);
+//			temp += arrv;
+//			double update = updateArrivalTime(queuearr.get(pri-1 ));
+//			System.out.println("new observed value for arrival is "+arrv+" ,the original one is "+temp+" ,the update value is "+update);
+//			
 			queuearr.set(pri-1, temp);
 			
 		    // add average service rate and do the average at last
@@ -133,21 +138,44 @@ public class dataretrival implements Runnable {
 					p.getArr().removeFirst();
 					p.getServ().removeFirst();
 				}
-				
+				int max;
+//				double temp = queuearr.get(p.getPrioirty()-1);
 //				System.out.println("inside Update rate for arrival "+queuearr.get(p.getPrioirty()-1));
-				p.getArr().addLast(queuearr.get(p.getPrioirty()-1));
-				System.out.println("update arr for queue "+p.getPrioirty()+ " with "+queuearr.get(p.getPrioirty()-1));
+//				p.getArr().addLast(queuearr.get(p.getPrioirty()-1));
+				double arrupdate = updateArrivalTime(queuearr.get(p.getPrioirty()-1));
+				p.getArr().addLast(arrupdate);
+//				System.out.println("update arr for queue "+p.getPrioirty()+ " with "+queuearr.get(p.getPrioirty()-1));
 				double sum = 0 ;
 				for(Double d: queueser.get(p.prioirty-1)){
 					sum += d;
 				}
 				double avg = sum/(queueser.get(p.prioirty-1).size());
 				p.getServ().addLast(avg);
-				System.out.println("update service rate as "+avg );
+				System.out.println("update arr for queue "+p.getPrioirty()+ " with "+arrupdate +" update service rate as "+avg );
 			}
 		}
 		
 		
+	}
+	
+	public double updateArrivalTime(ArrayList<Double> list){
+		double result = 0;
+		double max = 0;
+		
+		for(Double d: list){
+			if(d>max)
+				max =d;
+		}
+		
+		for(Double d :list){
+			result += max/d;
+		}
+//		double temp = Math.max(newobser, ori);
+//		double a = temp/newobser;
+//		double b = temp/ori;
+//		result = Double.valueOf(Methods.formatter.format(temp/(a+b)));
+		result = Double.valueOf(Methods.formatter.format(max/(result)));
+		return result;
 	}
 	public HashMap<Integer, LinkedList<Double>> getArrtemp() {
 		return arrtemp;

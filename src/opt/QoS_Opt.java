@@ -27,9 +27,9 @@ public class QoS_Opt {
 		QoS_Opt.lowLat = 100.0;
 		QoS_Opt.medLat = 50.0;
 		QoS_Opt.higLat = 15.0;
-		QoS_Opt.rho = 0.4;
-		QoS_Opt.eta = 0.3;
-		QoS_Opt.ipu = 0.3;
+		QoS_Opt.rho = 0.5;
+		QoS_Opt.eta = 0.25;
+		QoS_Opt.ipu = 0.25;
 	
 	}
 	
@@ -74,7 +74,7 @@ public class QoS_Opt {
 	 * @return
 	 */
 	public static double switchCost(ArrayList<String> hori, ArrayList<String> upd){
-	
+//		System.out.println("inside switch cost "+hori.toString()+" , "+upd.toString());
 		int addingcost = 0;
 		int removingcost = 0;
 		int cost = 5;
@@ -90,13 +90,16 @@ public class QoS_Opt {
 				bo.add(s);
 		}
 		
+//		System.out.println("bu "+bu.toString()+" , bo "+bo.toString());
 		for(String s: upd){
 			if(!bo.contains(s))
 				addingcost += cost;
 		}
 		
 		removingcost = bu.size() * cost;
-		
+//		System.out.println("adding cost "+ addingcost + " ,removing cost "+removingcost);
+//		System.out.println("ipu "+ipu);
+//		System.out.println("total cost for switching "+ ipu*(removingcost+addingcost));
 		return Double.valueOf(Methods.formatter.format(ipu*(removingcost+addingcost)));
 	}
 	
@@ -132,17 +135,19 @@ public class QoS_Opt {
 	 * @return
 	 */
 	public static double costE(PriorityQueue pq, ArrayList<String> prohost, HashMap<String, Topology> topologies){
+		new QoS_Opt();
 		double result = 0;
 		ArrayList<String> host = pq.getHosts();
 		double switchcost = switchCost(host, prohost);
 		double cpucost = cpuCost(prohost);
-		double qoscost = qosQueuecost(pq, topologies);
+		double qoscost = qosQueuecost(pq, topologies, prohost.size());
 		result =  switchcost + cpucost + qoscost;
-		System.out.println("details info about cost, switch cost  "+switchcost+" , cpu cost "+cpucost+" , qos cost "+qoscost);
+		System.out.println("schedule "+prohost.toString()+" switch cost  "+switchcost+" , cpu cost "+cpucost+" , qos cost "+qoscost);
 		return result;
 	}
 	
 	public static ArrayList<String> optimizedSolution(PriorityQueue pq, HashMap<String, Topology> topologies){
+		System.out.println("optimized solution for queue "+pq.getPrioirty());
 		ArrayList<String> result = new ArrayList<>();
 		ArrayList<ArrayList<String>> list = possibleHost(pq.getPrioirty());
 		double cost = Double.MAX_VALUE;
@@ -153,11 +158,11 @@ public class QoS_Opt {
 				result = option;
 			}
 		}
-		System.out.println("the optimial cost is "+cost);
+		System.out.println("the optimial cost is "+cost+ " with schedule "+result.toString());
 		return result;
 	}
 	
-	public static double qosQueuecost(PriorityQueue pq, HashMap<String, Topology> topologies){
+	public static double qosQueuecost(PriorityQueue pq, HashMap<String, Topology> topologies, int size){
 		double result = 0;
 		//punishment for each topology
 		int costpertopology = 10;
@@ -169,7 +174,11 @@ public class QoS_Opt {
 			for(Component c : t.getCompo().values()){
 				totalexel += c.getExeLatency();
 			}
-			double lat = totalexel + pq.getAvgbuf() + pq.getWaittime();
+//			System.out.println("total execute latency for "+s+ " is "+totalexel);
+			double lat = totalexel + pq.getAvgbuf() + pq.getQl().waittimeEstimating(size);
+//			System.out.println("waiting time estimation is "+ pq.getQl().waittimeEstimating(size));
+//			System.out.println("total latency for queue "+pq.getPrioirty()+" is "+lat);
+//			System.out.println("queue latency cost is "+qosCost(lat, pq.getPrioirty()));
 			result += costpertopology * qosCost(lat, pq.getPrioirty());
 		}
 		result = result * rho;
@@ -222,19 +231,19 @@ public class QoS_Opt {
 		return list;
 	}
 	
-	public static void main(String[] args) {
-		QoS_Opt qo = new QoS_Opt();
-		System.out.println(qo.possibleHost(2));
-		System.out.println(qo.possibleHost(3));
-//		ArrayList<String> ori = new ArrayList<>();
-//		ArrayList<String> upd = new ArrayList<>();
-//		ori.add("l1");
-//		ori.add("m2");
-////		ori.add("h3");
-//		upd.add("l1");
-//		upd.add("l3");
-//		System.out.println(qo.cpuCost(ori));
-//		System.out.println(qo.cpuCost(upd));
-//		System.out.println(qo.switchCost(ori, upd));
-	}
+//	public static void main(String[] args) {
+//		QoS_Opt qo = new QoS_Opt();
+//		System.out.println(qo.possibleHost(2));
+//		System.out.println(qo.possibleHost(3));
+////		ArrayList<String> ori = new ArrayList<>();
+////		ArrayList<String> upd = new ArrayList<>();
+////		ori.add("l1");
+////		ori.add("m2");
+//////		ori.add("h3");
+////		upd.add("l1");
+////		upd.add("l3");
+////		System.out.println(qo.cpuCost(ori));
+////		System.out.println(qo.cpuCost(upd));
+////		System.out.println(qo.switchCost(ori, upd));
+//	}
 }
