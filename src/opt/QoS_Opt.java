@@ -27,9 +27,9 @@ public class QoS_Opt {
 		QoS_Opt.lowLat = 100.0;
 		QoS_Opt.medLat = 50.0;
 		QoS_Opt.higLat = 15.0;
-		QoS_Opt.rho = 0.5;
-		QoS_Opt.eta = 0.25;
-		QoS_Opt.ipu = 0.25;
+		QoS_Opt.rho = 0.6;
+		QoS_Opt.eta = 0.2;
+		QoS_Opt.ipu = 0.2;
 	
 	}
 	
