@@ -10,6 +10,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import org.apache.storm.scheduler.Cluster;
 import org.apache.storm.scheduler.EvenScheduler;
@@ -18,6 +19,7 @@ import org.apache.storm.scheduler.SupervisorDetails;
 import org.apache.storm.scheduler.Topologies;
 import org.apache.storm.scheduler.TopologyDetails;
 import org.apache.storm.scheduler.WorkerSlot;
+
 
 import storm.model_based_scheduler.TopologyScheduler;
 
@@ -28,6 +30,8 @@ public class QoS_Priority{
 	public HashMap<String, TopologyScheduler> udpate = new HashMap<String, TopologyScheduler>();
 	// maintain the list of schedule for each queue, like 1, [s1,m1]
 	public HashMap<String, ArrayList<String>> list = new HashMap<>();
+	static HashMap<String, Boolean> queueupdate = new HashMap<>();
+	
 	public void prepare(Map conf) {}
 
     public void schedule(Topologies topologies, Cluster cluster) {
@@ -36,6 +40,12 @@ public class QoS_Priority{
     	// collect the supervisor information
     	Collection<SupervisorDetails> supervisors = cluster.getSupervisors().values();
     	reschedule = feedingUpdate("/home/ubuntu/schedule");
+    	
+    	for(int i = 1 ; i<=3 ; i++){
+    		String p = String.valueOf(i);
+    		if(!queueupdate.containsKey(p))
+    			queueupdate.put(p, false);
+    	}
 //    	reschedule = feedingUpdate("/Users/yidwa/Desktop/schedule");
     	if(reschedule == true){
     		Collection<TopologyDetails> td;
@@ -45,8 +55,10 @@ public class QoS_Priority{
     		List<WorkerSlot> w = new ArrayList<WorkerSlot>();
     		for(TopologyDetails topology :td){
 	    		if (topology != null) {
-	    			boolean needsScheduling = cluster.needsScheduling(topology);
-	    			if (!needsScheduling) {
+//	    			boolean needsScheduling = cluster.needsScheduling(topology);
+	    			String p = topology.getName().split("_")[1];
+//	    			if (!needsScheduling ) {
+	    			if(queueupdate.get(String.valueOf(p)).equals(false)){
 	    				System.out.println(topology.getName() + " DOES NOT NEED scheduling.");
 	    			} 	
 	    			else {
@@ -72,12 +84,15 @@ public class QoS_Priority{
 //    	String nodeclass = "";
     	//the priority obtained from the topology name
 //    	int priority = topology.getTopologyPriority();
-    	String temp = topology.getName().split("_")[1];
-    	int priority = Integer.valueOf(temp);
+    	String p = topology.getName().split("_")[1];
+//    	int priority = Integer.valueOf(temp);
     	
-    	String p = String.valueOf(priority);
+//    	String p = String.valueOf(priority);
     	HashMap<String, ArrayList<String>> m = getList();
     	ArrayList<String> assignedhost = m.get(p);
+    	if(assignedhost.size()==0){
+    		assignedhost.add("l"+p);
+    	}
     	
     	List<ExecutorDetails> executors = new ArrayList<ExecutorDetails>();
         Map<String, List<ExecutorDetails>> componentToExecutors = cluster.getNeedsSchedulingComponentToExecutors(topology);
@@ -117,10 +132,13 @@ public class QoS_Priority{
   						System.out.println("size is "+executors.size());
   						int remain = executors.size()%4;
   						int templength = executors.size()/4;
-  						System.out.println("temp length is "+templength+" ,and remain is "+remain);
+//  						System.out.println("temp length is "+templength+" ,and remain is "+remain);
   						int index = 0;	
   						for(int i =0; i<4; i++){
-  							w = updateSlots(supernodes, cluster).get(0);
+  							Random ran = new Random();
+  							int size = updateSlots(supernodes, cluster).size();
+  							int x = ran.nextInt(size);
+  							w = updateSlots(supernodes, cluster).get(x);
   							ArrayList<ExecutorDetails> part = new ArrayList<ExecutorDetails>();
   							for(int j = index; j<index+templength; j++){
   								part.add(executors.get(j));
@@ -210,9 +228,10 @@ public class QoS_Priority{
 			while((line=br.readLine())!=null){
 				//the file format should be 1 [s1,m1]
 				String pri = line.substring(0, 1);
+				QoS_Priority.queueupdate.put(pri, true);
 				int indl = line.indexOf('[');
 				int indr = line.indexOf(']');
-				String[] t = line.substring(indl, indr).split(",");
+				String[] t = line.substring(indl+1, indr).split(",");
 				temp = new ArrayList<String>();
 				for(String s: t){
 					temp.add(s);
