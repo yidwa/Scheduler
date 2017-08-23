@@ -4,6 +4,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.sql.Array;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -11,13 +14,13 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.storm.scheduler.Cluster;
-import org.apache.storm.scheduler.EvenScheduler;
 import org.apache.storm.scheduler.ExecutorDetails;
 import org.apache.storm.scheduler.SupervisorDetails;
 import org.apache.storm.scheduler.Topologies;
 import org.apache.storm.scheduler.TopologyDetails;
 import org.apache.storm.scheduler.WorkerSlot;
 
+import general.PriorityQueue;
 import storm.model_based_scheduler.TopologyScheduler;
 
 public class QoS_Aware {
@@ -25,48 +28,92 @@ public class QoS_Aware {
 
 		// TODO Auto-generated constructor stub
 		//schedule scheme for each topology
-		public HashMap<String, TopologyScheduler> udpate = new HashMap<String, TopologyScheduler>();
+//		public HashMap<String, TopologyScheduler> udpate = new HashMap<String, TopologyScheduler>();
 		// maintain the list of schedule for each queue, like 1, [s1,m1]
 		public HashMap<String, ArrayList<String>> list = new HashMap<>();
 		
 		public static HashMap<Integer, Boolean> queueupdate = new HashMap<>();
+		static HashMap<String, Integer> queueusize = new HashMap<>();
 		
 		public void prepare(Map conf) {}
 
 	    public void schedule(Topologies topologies, Cluster cluster) {
 	    	boolean reschedule;
-	    	System.out.println("QoS scheduling");	
+	    	
+	    	System.out.println("QoS Priority scheduling");	
 	    	// collect the supervisor information
 	    	Collection<SupervisorDetails> supervisors = cluster.getSupervisors().values();
 	    
 	    	reschedule = feedingUpdate("/home/ubuntu/schedule");
+	    	
 //	    	reschedule = feedingUpdate("/Users/yidwa/Desktop/schedule");
+	    	
+	    	// at least one of the queue need update
 	    	if(reschedule == true){
+	    		//keep the queue that need to update
+	    		ArrayList<Integer> updatedQueue = new ArrayList<>();
+	    		for(int i : queueupdate.keySet()){
+	    			if(QoS_Aware.queueupdate.get(i))
+	    				updatedQueue.add(i);
+	    		}
 	    		Collection<TopologyDetails> td;
 	    		td = topologies.getTopologies();
-	       
-//	    		Map<String, TopologyDetails> _topologies= new HashMap<String, TopologyDetails>();;
-	    		List<WorkerSlot> w = new ArrayList<WorkerSlot>();
+	    		
+	    		HashMap<Integer, ArrayList<TopologyDetails>> queuelist = new HashMap<>();
+
+	    		for(int i = 1; i<=3; i++){
+	    			queuelist.put(i, new ArrayList<>());
+	    		}
+	    		
+	    		
 	    		for(TopologyDetails topology :td){
-		    		if (topology != null) {
-		    			boolean needsScheduling = cluster.needsScheduling(topology);
-		    			boolean queueup = QoS_Aware.queueupdate.get(getQueue(topology));
-		    			if (!needsScheduling && !queueup) {
-		    				System.out.println(topology.getName() + " DOES NOT NEED scheduling.");
-		    			} 	
-		    			else {
-		    				System.out.println(topology.getName()+" needs scheduling.");
-		    				System.out.println("start scheduling for "+topology.getName());
-		    				findSupervisorT(cluster, topology, supervisors);
-		    			}
+	    			int p = getQueue(topology);
+	    			// the topology belongs to the updated queue
+		    		if (topology != null && updatedQueue.contains(p) ) {
+//		    			boolean needsScheduling = cluster.needsScheduling(topology);
+//		    			if (!needsScheduling && !queueup) {
+//		    				System.out.println(topology.getName() + " DOES NOT NEED scheduling.");
+//		    			} 	
+//		    			else {
+		    			queuelist.get(p).add(topology);
+		    			System.out.println("add "+topology.getId()+" to queue "+p);
+//		    				System.out.println(topology.getName()+" needs scheduling.");
+//		    				System.out.println("start scheduling for "+topology.getName());
+//		    				assigning(cluster, topology, supervisors);
+//		    			}
 		    		}
+		    		
+		    		assigning(cluster, queuelist, supervisors);
 		    	}
 //	        		new EvenScheduler().schedule(topologies, cluster);
 	    	}
 	    }
 
-	  
-	     
+	    
+	    /**
+	     * assign based on queue
+	     * @param cluster
+	     * @param queuelist , the list of updated queue list
+	     * @param supervisors
+	     */
+	    public void assigning(Cluster cluster, HashMap<Integer, ArrayList<TopologyDetails>> queuelist, Collection<SupervisorDetails> supervisors){
+	    	ArrayList<String> hostname = new ArrayList<>();
+	    	// for each queue, decide the rescheduling scheme based on size and list
+	    	for(int i : queuelist.keySet()){
+	    		int size = QoS_Aware.queueusize.get(i);
+	    		// if size == 0, then the schedule has changed, then need to reassign the executors to the new one 
+	    		if(size!=0){
+	    			for(String s: list.get(i)){
+	    				hostname.add(s);
+	    			}
+	    		}
+	    	}
+	    	
+	    	
+	    }
+	    
+	    
+	    
 	    public int getQueue(TopologyDetails t){
 	    	int result = 0;
 	    	String p = t.getName().split("_")[1];
@@ -95,7 +142,7 @@ public class QoS_Aware {
 	    
 //	    		componentToExecutors = topology.getComponents().get(sc).execs;
 	    	}
-	    
+	      
 	    	// the list of all nodes for the given queue
 	    	ArrayList<SupervisorDetails> supernodes = new ArrayList<SupervisorDetails>();
 	    	
@@ -172,30 +219,6 @@ public class QoS_Aware {
 				}
 			return availableSlots;
 	    }
-	 
-	    //mapping rationship between topology name and supervisor for testing purpose
-//	    public String t_supervisor(String tname){
-//	    	if(tname.contains("line"))
-//	    			return "large";
-//	    	else if(tname.contains("star"))
-//	    			return "medium";
-//	    	else if(tname.contains("diamond"))
-//	    		return "large";
-//	    	else 
-//	    		return "general";
-//	    				
-//	    		
-//	    }
-	  
-	    
-//	    public static void main(String[] args) {
-//	    	QoS_scheduler qos = new QoS_scheduler();
-//	    	qos.feedingUpdate("/Users/yidwa/Desktop/schedule");
-//	    	for(int i : qos.activenum){
-//	    		System.out.println(i);
-//	    		}
-//	    	}
-	//    
 	    
 	    /**
 	     * Reading the host for each queue from the file
@@ -220,6 +243,7 @@ public class QoS_Aware {
 				while((line=br.readLine())!=null){
 					//the file format should be 1 [s1,m1]
 					String pri = line.substring(0, 1);
+					String size = line.substring(2,3);
 					int indl = line.indexOf('[');
 					int indr = line.indexOf(']');
 					String update ="false";
@@ -228,6 +252,7 @@ public class QoS_Aware {
 					if(indexupdateright>indexupdate)
 						update = line.substring(indexupdate+1,indexupdateright);
 					QoS_Aware.queueupdate.put(Integer.valueOf(pri), Boolean.valueOf(update));
+					QoS_Aware.queueusize.put(pri, Integer.valueOf(size));
 					String[] t = line.substring(indl+1, indr).split(",");
 					temp = new ArrayList<String>();
 					for(String s: t){

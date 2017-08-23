@@ -34,7 +34,7 @@ public class QoS_Priority{
 	// maintain the list of schedule for each queue, like 1, [s1,m1]
 	public HashMap<String, ArrayList<String>> list = new HashMap<>();
 	static HashMap<String, Boolean> queueupdate = new HashMap<>();
-
+	static HashMap<String, Integer> queueusize = new HashMap<>();
 	public void prepare(Map conf) {}
 
 	public void schedule(Topologies topologies, Cluster cluster) {
@@ -93,7 +93,11 @@ public class QoS_Priority{
 		}
 	}
 
+	public void scheduleInstruction(){
+		
+	}
 
+	  
 	// find the specific supervisor according to topology
 	public WorkerSlot findSupervisorT(Cluster cluster, TopologyDetails topology, Collection<SupervisorDetails> supervisors){
 
@@ -281,18 +285,21 @@ public class QoS_Priority{
 					s.add("l"+(i+1));
 					mapping.put(String.valueOf(i+1), s);
 					QoS_Priority.queueupdate.put(String.valueOf(i+1), true);
+					QoS_Priority.queueusize.put(String.valueOf(i+1), 0);
 				}
 			}
 			else{
 				while((line=br.readLine())!=null){
 					//the file format should be 1 [s1,m1]
 					String pri = line.substring(0, 1);
+					String size = line.substring(2,3);
 					String update ="false";
 					int indexupdate = line.indexOf('(');
 					int indexupdateright = line.indexOf(')');
 					if(indexupdateright>indexupdate)
 						update = line.substring(indexupdate+1,indexupdateright);
 					QoS_Priority.queueupdate.put(pri, Boolean.valueOf(update));
+					QoS_Priority.queueusize.put(pri, Integer.valueOf(size));
 					queueb[Integer.valueOf(pri)-1] = Boolean.valueOf(update);
 					int indl = line.indexOf('[');
 					int indr = line.indexOf(']');
@@ -314,6 +321,7 @@ public class QoS_Priority{
 				s.add("l"+(i+1));
 				mapping.put(String.valueOf(i+1), s);
 				QoS_Priority.queueupdate.put(String.valueOf(i+1), true);
+				QoS_Priority.queueusize.put(String.valueOf(i+1), 0);
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
