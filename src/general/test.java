@@ -9,65 +9,47 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
 
+import org.apache.storm.scheduler.SupervisorDetails;
+
 public class test {
 	public static void main(String[] args) {
-		Random rd = new Random();
-		int max = 5;
-		for(int i= 0 ;i <5;i++){
-			System.out.println(rd.nextInt(5));
-		}
+//		Random rd = new Random(); 
+		test tt = new test();
+		ArrayList<Integer> t = new ArrayList<>();
+		t.add(8);
+		t.add(0);
+		t.add(8);
+		tt.testing(t);
+		
 	}
-	public boolean feedingUpdate(String filename){
-		System.out.println("insdie feeing update");
-		boolean reschedule = true;
-		File file = new File(filename);
-		FileReader reader = null;
-		BufferedReader br = null;
-		String line;
-		String name = null;
-		HashMap<String, ArrayList<String>> mapping = new HashMap<>();
-		ArrayList<String> temp;
-		try{
-			System.out.println("stargint try");
-			reader = new FileReader(file);
-			System.out.println("read file");
-			br = new BufferedReader(reader);
-//			TopologyScheduler ts = null;
-			if(br.readLine() == null){
-				System.out.println("file is null");
-				reschedule = false;
+	public void testing(ArrayList<Integer> t){
+		ArrayList<Integer> updatelist = new ArrayList<>();
+		int[] avail = new int[t.size()];
+		int minind = 0;
+		int maxind = avail.length-1;
+		
+			for(int i = 0 ; i<t.size(); i++){
+				avail[i] = t.get(i);
+				if(avail[i]<avail[minind])
+					minind = i;
+				else if(avail[i]>=avail[maxind])
+					maxind = i;
 			}
-			System.out.println("start reading");
-			while((line=br.readLine())!=null){
-				System.out.println("line is "+line);
-				//the file format should be 1 [s1,m1]
-				String pri = line.substring(0, 1);
-				int indl = line.indexOf('[');
-				int indr = line.indexOf(']');
-				String[] t = line.substring(indl+1, indr).split(",");
-				temp = new ArrayList<String>();
-				for(String s: t){
-					temp.add(s);
-				}
-				mapping.put(pri, temp);
+			System.out.println(maxind + " , "+minind);
+			if(avail.length==3){
+				updatelist.add(t.get(maxind));
+				for(int j = 0; j<3; j++){
+						if(j!=maxind && j!= minind){
+							System.out.println("find j "+j+" , "+t.get(j));
+							updatelist.add(t.get(j));
+						}
+					}
+				updatelist.add(t.get(minind));
 			}
-			System.out.println("fiie null");
-		}
-		catch(FileNotFoundException e){
-			System.out.println("not find the file");
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-//		setList(mapping);
-//		setActivenum(convertReading(temp));
-		for(String s: mapping.keySet()){
-			System.out.print(s);
-			for(String ss : mapping.get(s)){
-				System.out.print(ss+" ");
+			else{
+				updatelist.add(t.get(maxind));
+				updatelist.add(t.get(minind));
 			}
-			System.out.println();
-		}
-		return reschedule;
+			System.out.println(updatelist.toString());
 	}
 }

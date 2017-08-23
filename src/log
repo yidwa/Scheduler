@@ -55,3 +55,12 @@ Need to configured to switch the scheduling
  
  update the serv and arr, which is the freCal and executionTotaltime method to get the service time and arrival time
  update the getUti in QueueLatency
+ 
+Aug 22 format 
+
+ 2017-08-22 01:05:01.248
+1 false [s1]    
+2 false [s2, m2]               
+3 true [l3]
+
+ 
