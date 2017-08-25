@@ -54,18 +54,21 @@ public class QoS_Aware {
 		//	    	reschedule = feedingUpdate("/Users/yidwa/Desktop/schedule");
 
 		// at least one of the queue need update
+		Collection<TopologyDetails> td;
+		td = topologies.getTopologies();
+		HashMap<Integer, ArrayList<TopologyDetails>> queuelist = new HashMap<>();
+		
 		if(reschedule == true){
 			//keep the queue that need to update
-			ArrayList<Integer> updatedQueue = new ArrayList<>();
-			for(int i : queueupdate.keySet()){
-				if(QoS_Aware.queueupdate.get(i))
-					updatedQueue.add(i);
-			}
-			Collection<TopologyDetails> td;
-			td = topologies.getTopologies();
+//			ArrayList<Integer> updatedQueue = new ArrayList<>();
+//			for(int i : queueupdate.keySet()){
+//				if(QoS_Aware.queueupdate.get(i))
+//					updatedQueue.add(i);
+//			}
+			
 
 			// list of topology of each queue
-			HashMap<Integer, ArrayList<TopologyDetails>> queuelist = new HashMap<>();
+		
 
 			for(int i = 1; i<=3; i++){
 				queuelist.put(i, new ArrayList<>());
@@ -74,27 +77,37 @@ public class QoS_Aware {
 
 			for(TopologyDetails topology :td){
 				int p = getQueue(topology);
+				String id = topology.getId();
 				// the topology belongs to the updated queue
-				if (topology != null && updatedQueue.contains(p) ) {
+//				if (topology != null) {
 					//		    			boolean needsScheduling = cluster.needsScheduling(topology);
 					//		    			if (!needsScheduling && !queueup) {
 					//		    				System.out.println(topology.getName() + " DOES NOT NEED scheduling.");
 					//		    			} 	
 					//		    			else {
-					queuelist.get(p).add(topology);
-					System.out.println("add "+topology.getId()+" to queue "+p);
+				queuelist.get(p).add(topology);
+				System.out.println("add "+topology.getId()+" to queue "+p);
 					//		    				System.out.println(topology.getName()+" needs scheduling.");
 					//		    				System.out.println("start scheduling for "+topology.getName());
 					//		    				assigning(cluster, topology, supervisors);
 					//		    			}
-				}
-				else if (cluster.getAssignmentById(topology.getId()) == null){
-					queuelist.get(p).add(topology);
-					System.out.println("topology "+topology.getId()+" is initialized");
+//				}
+//				else{
+//				if (cluster.getAssignmentById(topology.getId()) == null){
+//					queuelist.get(p).add(topology);	
+//					System.out.println("topology "+topology.getId()+" is initialized");
+//					}
 				}
 				assigning(cluster, queuelist, supervisors);
 			}
 			//	        		new EvenScheduler().schedule(topologies, cluster);
+		else{
+			for(TopologyDetails topology :td){
+				if (cluster.getAssignmentById(topology.getId()) == null){
+					queuelist.get(getQueue(topology)).add(topology);
+				}
+			}
+			assigning(cluster, queuelist, supervisors);
 		}
 	}
 
@@ -112,73 +125,95 @@ public class QoS_Aware {
 		// for each queue, decide the rescheduling scheme based on size and list
 		for(int i : queuelist.keySet()){
 			hostname = new ArrayList<>();
+			boolean changedschedule = QoS_Aware.queueupdate.get(i);
 			int size = QoS_Aware.queueusize.get(String.valueOf(i));
 			// if size == 0, then the schedule has changed, then need to reassign the executors to the new one
 			for(String s: list.get(String.valueOf(i))){
 				hostname.add(s);
 			}
+			// the whole queue has changed schedule
+			if(changedschedule){
 			// the host number is not changed and only one host, which means the destination has totally changed, all topologies will migrate
-			if(size == 0 && hostname.size() ==1){
-				System.out.println("same number of host in this queue "+i+" , and the only host has changed");
-				List<ExecutorDetails> existingexecutor = getAllExecutors(queuelist.get(i), cluster);
-				if(queuelist.get(i).size()>0){
-					for(TopologyDetails t : queuelist.get(i)){
-						Set<WorkerSlot> assignedworkerslots = getMappedWorkerSlot(cluster, t, existingexecutor);
-						findSupervisorT(cluster, t, supervisors, existingexecutor, assignedworkerslots," ",false);
+				if(size == 0 && hostname.size() ==1){
+					System.out.println("same number of host in this queue "+i+" , and the only host has changed");
+					List<ExecutorDetails> existingexecutor = getAllExecutors(queuelist.get(i), cluster);
+					if(queuelist.get(i).size()>0){
+						for(TopologyDetails t : queuelist.get(i)){
+							Set<WorkerSlot> assignedworkerslots = getMappedWorkerSlot(cluster, t, existingexecutor);
+							findSupervisorT(cluster, t, supervisors, existingexecutor, assignedworkerslots," ",false);
+						}
 					}
+					else{
+						System.out.println("no topology need to update in queue "+i);
+					}
+				}	
+				//the host number is not changed and there are two hosts, which means there is one of the host changed
+				else if(size == 0 && hostname.size() == 2){
+					System.out.println("same number of host in this queue "+i+" , and there are host where one of them changed");
+					List<ExecutorDetails> existingexecutor = getAllExecutors(queuelist.get(i), cluster);
+					HashMap<String,String> allocatedhost = new HashMap<>();
+					if(queuelist.get(i).size()>0){
+						for(TopologyDetails t : queuelist.get(i)){
+							HashSet<WorkerSlot> assignedworkerslots = getMappedWorkerSlot(cluster, t, existingexecutor);
+							allocatedhost.put(t.getId(), findHostname(t));
+							findSupervisorT(cluster, t, supervisors, existingexecutor, assignedworkerslots, allocatedhost.get(t.getId()),false);
+						}
+					}
+					else
+						System.out.println("no topology need to update in queue "+i);
+				}
+				// the queue has an increasing number of host, if allocated host is existed in the new allocation, decide whether move or not, if not exist, move
+				else if(size == 1){
+					System.out.println("increasing number of host in this queue "+i);
+					List<ExecutorDetails> existingexecutor = getAllExecutors(queuelist.get(i), cluster);
+					HashMap<String,String> allocatedhost = new HashMap<>();
+					if(queuelist.get(i).size()>0){
+						for(TopologyDetails t : queuelist.get(i)){
+							HashSet<WorkerSlot> assignedworkerslots = getMappedWorkerSlot(cluster, t, existingexecutor);
+							allocatedhost.put(t.getId(), findHostname(t));
+							findSupervisorT(cluster, t, supervisors, existingexecutor, assignedworkerslots, allocatedhost.get(t.getId()),true);
+						}
+					}
+					else 
+						System.out.println("no topology need to update in queue "+i);
+				}
+				// the queue has an decreasing number of host, if allocated is existed in the new allocation, stay unchanged , otherwise, move
+				else if(size == 2){
+					System.out.println("decreasing number of host in this queue "+i);
+					List<ExecutorDetails> existingexecutor = getAllExecutors(queuelist.get(i), cluster);
+					HashMap<String,String> allocatedhost = new HashMap<>();
+					if(queuelist.get(i).size()>0){
+						for(TopologyDetails t : queuelist.get(i)){
+							HashSet<WorkerSlot> assignedworkerslots = getMappedWorkerSlot(cluster, t, existingexecutor);
+							allocatedhost.put(t.getId(), findHostname(t));
+							findSupervisorT(cluster, t, supervisors, existingexecutor, assignedworkerslots, allocatedhost.get(t.getId()),false);
+						}
+					}
+					else
+						System.out.println("no topology need to update in queue "+i);
+				}
+				else{ 
+					System.out.println("nothing to do "+size+" , "+hostname.size());
+				}
 				}
 				else{
-					System.out.println("no topology need to update in queue "+i);
-				}
-			}	
-			//the host number is not changed and there are two hosts, which means there is one of the host changed
-			else if(size == 0 && hostname.size() == 2){
-				System.out.println("same number of host in this queue "+i+" , and there are host where one of them changed");
-				List<ExecutorDetails> existingexecutor = getAllExecutors(queuelist.get(i), cluster);
-				HashMap<String,String> allocatedhost = new HashMap<>();
-				if(queuelist.get(i).size()>0){
+					System.out.println("queue "+i+ " ,has not changed schedule");
 					for(TopologyDetails t : queuelist.get(i)){
-						HashSet<WorkerSlot> assignedworkerslots = getMappedWorkerSlot(cluster, t, existingexecutor);
-						allocatedhost.put(t.getId(), findHostname(t));
-						findSupervisorT(cluster, t, supervisors, existingexecutor, assignedworkerslots, allocatedhost.get(t.getId()),false);
+						SchedulerAssignment currentAssignment = cluster.getAssignmentById(t.getId());
+						Map<ExecutorDetails, WorkerSlot> assigned = new HashMap<ExecutorDetails, WorkerSlot>();
+						if(currentAssignment!= null){
+							assigned = currentAssignment.getExecutorToSlot();
+						}
+						if(assigned.size()<10){
+							System.out.println("topology "+t.getId()+" has not assignment now");
+							List<ExecutorDetails> existingexecutor = getAllExecutors(queuelist.get(i), cluster);
+							HashSet<WorkerSlot> assignedworkerslots = getMappedWorkerSlot(cluster, t, existingexecutor);
+							HashMap<String,String> allocatedhost = new HashMap<>();
+							allocatedhost.put(t.getId(), findHostname(t));
+							findSupervisorT(cluster, t, supervisors, existingexecutor, assignedworkerslots, allocatedhost.get(t.getId()),false);
+						}
 					}
 				}
-				else
-					System.out.println("no topology need to update in queue "+i);
-			}
-			// the queue has an increasing number of host, if allocated host is existed in the new allocation, decide whether move or not, if not exist, move
-			else if(size == 1){
-				System.out.println("increasing number of host in this queue "+i);
-				List<ExecutorDetails> existingexecutor = getAllExecutors(queuelist.get(i), cluster);
-				HashMap<String,String> allocatedhost = new HashMap<>();
-				if(queuelist.get(i).size()>0){
-					for(TopologyDetails t : queuelist.get(i)){
-						HashSet<WorkerSlot> assignedworkerslots = getMappedWorkerSlot(cluster, t, existingexecutor);
-						allocatedhost.put(t.getId(), findHostname(t));
-						findSupervisorT(cluster, t, supervisors, existingexecutor, assignedworkerslots, allocatedhost.get(t.getId()),true);
-					}
-				}
-				else 
-					System.out.println("no topology need to update in queue "+i);
-			}
-			// the queue has an decreasing number of host, if allocated is existed in the new allocation, stay unchanged , otherwise, move
-			else if(size == 2){
-				System.out.println("decreasing number of host in this queue "+i);
-				List<ExecutorDetails> existingexecutor = getAllExecutors(queuelist.get(i), cluster);
-				HashMap<String,String> allocatedhost = new HashMap<>();
-				if(queuelist.get(i).size()>0){
-					for(TopologyDetails t : queuelist.get(i)){
-						HashSet<WorkerSlot> assignedworkerslots = getMappedWorkerSlot(cluster, t, existingexecutor);
-						allocatedhost.put(t.getId(), findHostname(t));
-						findSupervisorT(cluster, t, supervisors, existingexecutor, assignedworkerslots, allocatedhost.get(t.getId()),false);
-					}
-				}
-				else
-					System.out.println("no topology need to update in queue "+i);
-			}
-			else{ 
-				System.out.println("nothing to do "+size+" , "+hostname.size());
-			}
 		}
 	}
 
@@ -361,7 +396,7 @@ public class QoS_Aware {
 			// TODO for simplicity, we free all the used slots on the supervisor.
 			if (availableSlots.isEmpty() ) {
 				System.out.println("no available slots in spout supervisor");
-				return null;
+				
 			}
 			else{
 				boolean temp = false;
@@ -384,10 +419,10 @@ public class QoS_Aware {
 				}
 					// need to justify
 				if(temp){
-					if(increasing == false)
-						return null;
+					
 					// the queue host increased, need to decide whether to move
-					else{
+					if(increasing == true)
+						{
 						onlyrest = false;
 						HashMap<String, SupervisorDetails> nodesupdate = supernodes;
 						HashMap<String,Integer> status = nodesReorder(supernodes, cluster);
@@ -404,9 +439,7 @@ public class QoS_Aware {
 						// if the existing destination is the one with most slots, stay unchanged)
 						if(allocatedhost.equals(nodesupdate.get(firstone).getId())){
 							System.out.println("topology "+topology.getId()+" will not change the destinaion");
-							if(exeudpate.size() == 0)
-								return null;
-							else{
+							if(exeudpate.size() != 0){
 								tempdes = firstone;
 								System.out.println("still have some executors to map");
 								onlyrest =true;
