@@ -247,7 +247,46 @@ public class QoS_Aware {
 		return workerslots;
 	}
 
-
+	public List<ExecutorDetails> getExecutorTopo(TopologyDetails t, Cluster cluster, Boolean onlyneeded){
+		List<ExecutorDetails> executors = new ArrayList<ExecutorDetails>();
+		Map<String, List<ExecutorDetails>> rest = new HashMap<>();
+		Map<String, List<ExecutorDetails>> componentToExecutors = new HashMap<>();
+		if(onlyneeded){
+			rest.putAll(cluster.getNeedsSchedulingComponentToExecutors(t));
+			for(String s: rest.keySet()){
+				if(rest.get(s).size()>0){
+					executors.addAll(rest.get(s));
+				}
+			}
+		}
+		else{
+			for(String sc: t.getComponents().keySet()){
+				componentToExecutors.put(sc, t.getComponents().get(sc).execs);
+			}
+			rest.putAll(cluster.getNeedsSchedulingComponentToExecutors(t));
+			
+			for(String s: componentToExecutors.keySet()){
+				executors.addAll(componentToExecutors.get(s));
+				// remove those executors already included, try to find out all ackers and other executors
+				if(rest.containsKey(s) && rest.get(s).size()>0){
+					System.out.println("therer are some executors need to schedule for component "+s);
+					for(ExecutorDetails ed : componentToExecutors.get(s)){
+						if(rest.get(s).contains(ed)){
+							rest.get(s).remove(ed);
+						}
+					}
+				}
+			}
+	
+			for(String s: rest.keySet()){
+				if(rest.get(s).size()>0){
+					executors.addAll(rest.get(s));
+				}
+			}
+			
+			}
+		return executors;
+	}
 	public List<ExecutorDetails> getAllExecutors(ArrayList<TopologyDetails> topologies, Cluster cluster){
 		List<ExecutorDetails> executors = new ArrayList<ExecutorDetails>();
 		// all needs schedule executors 
@@ -303,10 +342,10 @@ public class QoS_Aware {
 		String p = String.valueOf(getQueue(topology));
 		HashMap<String, ArrayList<String>> m = getList();
 		ArrayList<String> assignedhost = m.get(p);
-		//	      
+		boolean onlyrest = false;
 		// the list of all nodes for the given queue
 		HashMap<String, SupervisorDetails> supernodes = new HashMap<>();
-
+		List<ExecutorDetails> exeudpate = new ArrayList<>();
 		//find all supervisor that corresponds to the priority queue
 		for (SupervisorDetails supervisor : supervisors) {
 			if(assignedhost.contains(supervisor.getHost())){
@@ -330,6 +369,7 @@ public class QoS_Aware {
 				// not ini
 				if(allocatedhost!= " "){
 					System.out.println("now the nodes size is "+supernodes.size());
+					onlyrest = false;
 					for(SupervisorDetails sd : supernodes.values()){
 						System.out.println("assigning supervisor host is "+sd.getId());
 						if (sd.getId().equals(allocatedhost)){
@@ -348,7 +388,7 @@ public class QoS_Aware {
 						return null;
 					// the queue host increased, need to decide whether to move
 					else{
-					
+						onlyrest = false;
 						HashMap<String, SupervisorDetails> nodesupdate = supernodes;
 						HashMap<String,Integer> status = nodesReorder(supernodes, cluster);
 //						System.out.println(nodesupdate.size());
@@ -364,26 +404,33 @@ public class QoS_Aware {
 						// if the existing destination is the one with most slots, stay unchanged)
 						if(allocatedhost.equals(nodesupdate.get(firstone).getId())){
 							System.out.println("topology "+topology.getId()+" will not change the destinaion");
-							if(exe.size() == 0)
+							if(exeudpate.size() == 0)
 								return null;
 							else{
+								tempdes = firstone;
 								System.out.println("still have some executors to map");
+								onlyrest =true;
 							}
 						}
 						else{
 							tempdes = firstone;
 							System.out.println("the topology "+topology.getId()+" needs to migrate to "+tempdes);
-							
+							onlyrest = false;
 							}
 						}
 					
 					}
 					HashMap<String, SupervisorDetails> nodesupdate = supernodes;
 					System.out.println("need to reassign "+topology.getId());
+				
+			
+//					exe = getExecutorTopo(topology, cluster);
+					
+					exeudpate = getExecutorTopo(topology, cluster, onlyrest);
 					cluster.freeSlots(assignedworkerslots);
-					System.out.println("size is "+exe.size());
-					int remain = exe.size()%4;
-					int templength = exe.size()/4;
+					System.out.println("size is "+exeudpate.size());
+					int remain = exeudpate.size()%4;
+					int templength = exeudpate.size()/4;
 					System.out.println("temp length is "+templength+" ,and remain is "+remain);
 					int index = 0;	
 					HashMap<String, SupervisorDetails> templist = new HashMap<>();
@@ -400,7 +447,7 @@ public class QoS_Aware {
 							w = updateSlots(nodesupdate, cluster).get(0);
 						ArrayList<ExecutorDetails> part = new ArrayList<ExecutorDetails>();
 						for(int j = index; j<index+templength; j++){
-							part.add(exe.get(j));
+							part.add(exeudpate.get(j));
 						}
 						index = index+templength;
 						System.out.println("executors are "+part.toString());
@@ -412,7 +459,7 @@ public class QoS_Aware {
 						w = updateSlots(nodesupdate, cluster).get(0);
 						ArrayList<ExecutorDetails> part = new ArrayList<ExecutorDetails>();
 						for(int i = index; i<index+remain; i++){
-							part.add(exe.get(i));
+							part.add(exeudpate.get(i));
 						}
 						System.out.println("executors are "+part.toString());
 						cluster.assign(w, topology.getId(), part);
