@@ -6,6 +6,8 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Set;
 
+import org.apache.storm.scheduler.TopologyDetails;
+
 import general.Component;
 import general.Executor;
 import general.Methods;
@@ -27,6 +29,8 @@ public class QueueUpdate implements Runnable {
 	HashMap<String, LinkedList<Double>> ser;
 	
 	HashMap<Integer, ArrayList<String>> mappingresult;
+	HashMap<Integer, Integer> mappingsize;
+	HashMap<Integer, Boolean> mappingupdate;
 
 	public QueueUpdate(StormREST sr,HashMap<String, Topology>  topologies, HashMap<String, Integer> priority, ArrayList<PriorityQueue> pq, 
 			HashMap<String, LinkedList<Double>> arr, HashMap<String, LinkedList<Double>> ser) {
@@ -40,6 +44,8 @@ public class QueueUpdate implements Runnable {
 		this.arr = arr;
 		this.ser = ser;
 		this.mappingresult = new HashMap<>();
+		this.mappingsize = new HashMap<>();
+		this.mappingupdate = new HashMap<>();
 //		for(Topology t: topologies.values()){
 //			Throughput thr = new Throughput(t.getTid(), t.getCompostruct(), t.getCompo());
 //			Latency lc = new Latency(t.getTid(), t.getCompostruct(),t.getCompo(), new ArrayList<Double>(), new ArrayList<Double>(), t.getTworker().size());
@@ -98,16 +104,20 @@ public class QueueUpdate implements Runnable {
 		  ArrayList<String> ts = pq.getNames();
 		  ArrayList<Executor> exes = new ArrayList<Executor>();
 		  for(String t: ts){
-			  Topology topo = topologies.get(t);
-			  exes = topo.getTworker();
-			  for(Executor e : exes){
-				  hosts.add(e.getHost());
+			  if(topologies.containsKey(t)){
+				  Topology topo = topologies.get(t);
+				  exes = topo.getTworker();
+				  for(Executor e : exes){
+					  hosts.add(e.getHost());
+				  }
 			  }
 		  }
 		  ArrayList<String> hostupdate = new ArrayList<String>();
-		  for(String s: hosts){
-			  hostupdate.add(s);
+		  if(hosts.size()>0){
+			  for(String s: hosts){
+				  hostupdate.add(s);
 //			  System.out.println("udpate queue "+pq.getPrioirty()+" with host "+s);
+			  }
 		  }
 		  pq.setHosts(hostupdate);
 		  
@@ -138,26 +148,74 @@ public class QueueUpdate implements Runnable {
 					ArrayList<String> queuemapping = QoS_Opt.optimizedSolution(p, topologies);
 					System.out.println("after optmization ");
 					System.out.println(queuemapping.toString());
-					if(!compareArrays(p.getHosts(), queuemapping))
+					// mapping changed 
+					if(!compareArrays(p.getHosts(), queuemapping)){
+						System.out.println("mapping changed for queue "+p.getPrioirty());
 						mappingresult.put(p.getPrioirty(), queuemapping);
+						if(p.getHosts().size()<queuemapping.size())
+							mappingsize.put(p.getPrioirty(), 1);
+						else if(p.getHosts().size()>queuemapping.size())
+							mappingsize.put(p.getPrioirty(), 2);
+						else
+							mappingsize.put(p.getPrioirty(), 0);
+						
+						mappingupdate.put(p.getPrioirty(), true);
+					}
 					else{
-						mappingresult.put(p.getPrioirty(), new ArrayList<>());
-						System.out.println("mapping unchanged for queue "+ p.getPrioirty());
+						System.out.println("mapping not changed for queue "+p.getPrioirty());
+						mappingresult.put(p.getPrioirty(), queuemapping);
+//						System.out.println("nochange 1");
+						mappingsize.put(p.getPrioirty(), 0);
+//						System.out.println("nochange 2");
+						mappingupdate.put(p.getPrioirty(), false);
+//						System.out.println("nochange 3");
+//						System.out.println("mapping unchanged for queue "+ p.getPrioirty());
 					}
 				}
+				//no topology
+				else{
+					ArrayList<String> temp = new ArrayList<>();
+					temp.add("m"+p.getPrioirty());
+					mappingresult.put(p.getPrioirty(), temp);
+					mappingsize.put(p.getPrioirty(), 0);
+					mappingupdate.put(p.getPrioirty(), false);
+				}
 			}
-			
+//			System.out.println("before updating mapping result "+mappingsize.size()+" "+mappingupdate.size()+" "+mappingresult.size());
 			String mappresult = "";
 			for(int i : mappingresult.keySet()){
-				mappresult += i+" "+mappingresult.get(i).toString();
+				mappresult += i+" "+mappingsize.get(i)+" ("+mappingupdate.get(i)+")"+" "+mappingresult.get(i).toString()+"\n";
 			}
-			System.out.println("mapping result "+mappresult);
+//			System.out.println("mapping result "+mappresult);
 			Methods.writeFile(mappresult, "schedule",false);
-//			Methods.writeFile(sen, "metrics.txt",true);
+			Methods.writeFile(mappresult, "history", true);
+			String sen = "";
+			for(PriorityQueue p : pq){
+				ArrayList<String> tsinp = p.getNames();
+				sen += p.getPrioirty()+",";
+//				+","+p.getAvgbuf()+","+p.getWaittime()+","+p.getNames().toString();
+				for(String s : topologies.keySet()){
+					if(tsinp.contains(s)){
+						Topology t = topologies.get(s);
+						double emit = t.getSystememit();
+						long fail = t.getFailed();
+						double lat = t.getSystemlatency();
+						sen += s+","+emit+","+lat+","+fail;
+					}
+					sen+=",";
+				}
+				sen+="\n";
+			}
+			Methods.writeFile(sen, "metrics.txt",true);
 //			    System.out.println("set metrics "+ thr+ " , "+ lat);
 //			    System.out.println("metric of "+s+" , "+metrics.get(s).latency+" , "+metrics.get(s).throughput);
 		}
-			   
+			   /**
+			    * return true if two arrays equal
+			    * @param a
+			    * @param b
+			    * @return
+			    */
 		public static boolean compareArrays(ArrayList<String> a, ArrayList<String> b){
 			boolean result = true;
 			if(a==null && b==null)

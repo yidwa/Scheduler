@@ -50,9 +50,12 @@ public class QueueLatency {
 		double pm = waitProb();
 //		System.out.println("wait pro  "+priority+" , "+pm);
 //		double t1 = 0;
+		double result_b = 0.0;
 		if (meanserv == 0 || uti == 1){
 			System.out.println("mean serve frequency is 0 or the util is 1");
+		
 		}
+		else{
 //		t1 = pm/(meanserv*(1-uti));
 		//update the waiting time formula
 		double t11 = meanserv/(meanserv*(1-uti));
@@ -62,13 +65,17 @@ public class QueueLatency {
 		double t2 = (ca+cs)/tt;
 //	    DecimalFormat formatter = new DecimalFormat("#0.000");
 //	    double result = t1*t2*1000000;
-	    double result_b = t11*t2;
+	    result_b = t11*t2;
 //	    System.out.println("t11 "+t11+" cs, ca "+cs+ " , "+ca+" , tt "+tt);
 //	    result += getExeLatency();
 //	    result = Double.valueOf(formatter.format(result));
 	    result_b = Double.valueOf(Methods.formatter.format(result_b));
 //	    System.out.println("inside waiting time estimation : result_B"+ result_b);
-		return result_b;
+		}
+		if(result_b<0){
+			System.out.println("the number needs to increase");
+		}
+	    return Math.abs(result_b);
 	}
 	
 	

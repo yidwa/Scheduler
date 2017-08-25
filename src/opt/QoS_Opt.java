@@ -24,12 +24,12 @@ public class QoS_Opt {
 	
 	public QoS_Opt() {
 		// TODO Auto-generated constructor stub
-		QoS_Opt.lowLat = 100.0;
-		QoS_Opt.medLat = 50.0;
+		QoS_Opt.lowLat = 55.0;
+		QoS_Opt.medLat = 20.0;
 		QoS_Opt.higLat = 15.0;
-		QoS_Opt.rho = 0.6;
-		QoS_Opt.eta = 0.2;
-		QoS_Opt.ipu = 0.2;
+		QoS_Opt.rho = 0.5;
+		QoS_Opt.eta = 0.25;
+		QoS_Opt.ipu = 0.25;
 	
 	}
 	
@@ -175,11 +175,16 @@ public class QoS_Opt {
 				totalexel += c.getExeLatency();
 			}
 //			System.out.println("total execute latency for "+s+ " is "+totalexel);
-			double lat = totalexel + pq.getAvgbuf() + pq.getQl().waittimeEstimating(size);
-//			System.out.println("waiting time estimation is "+ pq.getQl().waittimeEstimating(size));
-//			System.out.println("total latency for queue "+pq.getPrioirty()+" is "+lat);
-//			System.out.println("queue latency cost is "+qosCost(lat, pq.getPrioirty()));
+			double wait = pq.getQl().waittimeEstimating(size);
+			System.out.println("wait time now is "+wait);
+		
+			double lat = totalexel + pq.getAvgbuf() + wait ;
+			System.out.println("latency is "+lat);
+		//			System.out.println("waiting time estimation is "+ pq.getQl().waittimeEstimating(size));
+		//			System.out.println("total latency for queue "+pq.getPrioirty()+" is "+lat);
+		//			System.out.println("queue latency cost is "+qosCost(lat, pq.getPrioirty()));
 			result += costpertopology * qosCost(lat, pq.getPrioirty());
+		
 		}
 		result = result * rho;
 		return Double.valueOf(Methods.formatter.format(result));

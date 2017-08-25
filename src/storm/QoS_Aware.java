@@ -631,25 +631,28 @@ public class QoS_Aware {
 				reschedule = false;
 			while((line=br.readLine())!=null){
 				//the file format should be 1 [s1,m1]
-				String pri = line.substring(0, 1);
-				String size = line.substring(2,3);
-				int indl = line.indexOf('[');
-				int indr = line.indexOf(']');
-				String update ="false";
-				int indexupdate = line.indexOf('(');
-				int indexupdateright = line.indexOf(')');
-				if(indexupdateright>indexupdate)
-					update = line.substring(indexupdate+1,indexupdateright);
-				//				System.out.println("reading pri "+pri+" size "+size+" "+update);
-				QoS_Aware.queueupdate.put(Integer.valueOf(pri), Boolean.valueOf(update));
-				QoS_Aware.queueusize.put(pri, Integer.valueOf(size));
-				String[] t = line.substring(indl+1, indr).split(",");
-				temp = new ArrayList<String>();
-				for(String s: t){
-					temp.add(s);
+				if(line.length()>1){
+//					System.out.println("reading line "+line);
+					String pri = line.substring(0, 1);
+					String size = line.substring(2,3);
+					int indl = line.indexOf('[');
+					int indr = line.indexOf(']');
+					String update ="false";
+					int indexupdate = line.indexOf('(');
+					int indexupdateright = line.indexOf(')');
+					if(indexupdateright>indexupdate)
+						update = line.substring(indexupdate+1,indexupdateright);
+					//				System.out.println("reading pri "+pri+" size "+size+" "+update);
+					QoS_Aware.queueupdate.put(Integer.valueOf(pri), Boolean.valueOf(update));
+					QoS_Aware.queueusize.put(pri, Integer.valueOf(size));
+					String[] t = line.substring(indl+1, indr).split(",");
+					temp = new ArrayList<String>();
+					for(String s: t){
+						temp.add(s);
+					}
+					mapping.put(pri, temp);
+					//				System.out.println("also put record "+temp.toString());
 				}
-				mapping.put(pri, temp);
-				//				System.out.println("also put record "+temp.toString());
 			}
 		}
 		catch(FileNotFoundException e){

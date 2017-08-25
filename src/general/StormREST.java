@@ -164,7 +164,7 @@ public class StormREST {
 			}
 			for (Entry<String, Topology> e : topologies.entrySet()) {
 				String sen = e.getKey() + " , " + e.getValue().tworker.toString() + "\n";
-				Methods.writeFile(sen, "tworkers.txt", true);
+//				Methods.writeFile(sen, "tworkers.txt", true);
 			}
 		}
 	}
@@ -195,6 +195,7 @@ public class StormREST {
 					Executor e = new Executor(h, p);
 					temp.add(e);
 				}
+				System.out.println("now update the Tworker for "+id+" with "+temp.size());
 				topologies.get(id).setTworker(temp);
 			}
 		} catch (IOException e) {
