@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.collections.set.SynchronizedSortedSet;
 import org.apache.storm.scheduler.Cluster;
 import org.apache.storm.scheduler.ExecutorDetails;
 import org.apache.storm.scheduler.SchedulerAssignment;
@@ -37,6 +38,7 @@ public class QoS_Aware {
 
 	public static HashMap<Integer, Boolean> queueupdate = new HashMap<>();
 	static HashMap<String, Integer> queueusize = new HashMap<>();
+	public static HashMap<String, ArrayList<String>> workerlist = new HashMap<>();
 
 	public void prepare(Map conf) {}
 
@@ -62,6 +64,7 @@ public class QoS_Aware {
 			Collection<TopologyDetails> td;
 			td = topologies.getTopologies();
 
+			// list of topology of each queue
 			HashMap<Integer, ArrayList<TopologyDetails>> queuelist = new HashMap<>();
 
 			for(int i = 1; i<=3; i++){
@@ -125,7 +128,7 @@ public class QoS_Aware {
 					}
 				}
 				else{
-					System.out.println("no topology in queue "+i);
+					System.out.println("no topology need to update in queue "+i);
 				}
 			}	
 			//the host number is not changed and there are two hosts, which means there is one of the host changed
@@ -135,13 +138,13 @@ public class QoS_Aware {
 				HashMap<String,String> allocatedhost = new HashMap<>();
 				if(queuelist.get(i).size()>0){
 					for(TopologyDetails t : queuelist.get(i)){
-						Set<WorkerSlot> assignedworkerslots = getMappedWorkerSlot(cluster, t, existingexecutor);
-						allocatedhost.put(t.getId(), findHostname(assignedworkerslots));
+						HashSet<WorkerSlot> assignedworkerslots = getMappedWorkerSlot(cluster, t, existingexecutor);
+						allocatedhost.put(t.getId(), findHostname(t));
 						findSupervisorT(cluster, t, supervisors, existingexecutor, assignedworkerslots, allocatedhost.get(t.getId()),false);
 					}
 				}
 				else
-					System.out.println("no topology in queue "+i);
+					System.out.println("no topology need to update in queue "+i);
 			}
 			// the queue has an increasing number of host, if allocated host is existed in the new allocation, decide whether move or not, if not exist, move
 			else if(size > 0){
@@ -150,13 +153,13 @@ public class QoS_Aware {
 				HashMap<String,String> allocatedhost = new HashMap<>();
 				if(queuelist.get(i).size()>0){
 					for(TopologyDetails t : queuelist.get(i)){
-						Set<WorkerSlot> assignedworkerslots = getMappedWorkerSlot(cluster, t, existingexecutor);
-						allocatedhost.put(t.getId(), findHostname(assignedworkerslots));
+						HashSet<WorkerSlot> assignedworkerslots = getMappedWorkerSlot(cluster, t, existingexecutor);
+						allocatedhost.put(t.getId(), findHostname(t));
 						findSupervisorT(cluster, t, supervisors, existingexecutor, assignedworkerslots, allocatedhost.get(t.getId()),true);
 					}
 				}
 				else 
-					System.out.println("no topology in queue "+i);
+					System.out.println("no topology need to update in queue "+i);
 			}
 			// the queue has an decreasing number of host, if allocated is existed in the new allocation, stay unchanged , otherwise, move
 			else if(size <0){
@@ -165,45 +168,54 @@ public class QoS_Aware {
 				HashMap<String,String> allocatedhost = new HashMap<>();
 				if(queuelist.get(i).size()>0){
 					for(TopologyDetails t : queuelist.get(i)){
-						Set<WorkerSlot> assignedworkerslots = getMappedWorkerSlot(cluster, t, existingexecutor);
-						allocatedhost.put(t.getId(), findHostname(assignedworkerslots));
+						HashSet<WorkerSlot> assignedworkerslots = getMappedWorkerSlot(cluster, t, existingexecutor);
+						allocatedhost.put(t.getId(), findHostname(t));
 						findSupervisorT(cluster, t, supervisors, existingexecutor, assignedworkerslots, allocatedhost.get(t.getId()),false);
 					}
 				}
 				else
-					System.out.println("no topology in queue "+i);
+					System.out.println("no topology need to update in queue "+i);
 			}
-			else{
+			else{ 
 				System.out.println("nothing to do "+size+" , "+hostname.size());
 			}
 		}
 	}
 
-	public String findHostname(Set<WorkerSlot> assignedworkerslots){
+	public String findHostname(TopologyDetails t){
 		//	    		ArrayList<String> names = new ArrayList<>();
 		String name = "";
-		for(WorkerSlot ws : assignedworkerslots){
-			name = ws.getId();
-			if(name!=null)
-				return name;
-		}
+	
+		if(QoS_Aware.workerlist.containsKey(t.getId()))
+			name = workerlist.get(t.getId()).get(0);
+		
 		return name;
 	}
 
-	public Set<WorkerSlot> getMappedWorkerSlot(Cluster cluster, TopologyDetails t, List<ExecutorDetails> existingexecutor){
+	public HashSet<WorkerSlot> getMappedWorkerSlot(Cluster cluster, TopologyDetails t, List<ExecutorDetails> existingexecutor){
 
-		Set<WorkerSlot> workerslots = new HashSet<WorkerSlot>();
+		HashSet<WorkerSlot> workerslots = new HashSet<WorkerSlot>();
 		Map<ExecutorDetails, WorkerSlot> assigned = new HashMap<ExecutorDetails, WorkerSlot>();
 
 		SchedulerAssignment currentAssignment = cluster.getAssignmentById(t.getId());
 
 		if(currentAssignment!=null){
 			assigned = currentAssignment.getExecutorToSlot();
-		}
-		for(ExecutorDetails ed : existingexecutor){
-			workerslots.add(assigned.get(ed));
-		}
 
+			for(ExecutorDetails ed : existingexecutor){
+				workerslots.add(assigned.get(ed));
+				ArrayList<String> workers = new ArrayList<>();
+				if(QoS_Aware.workerlist.containsKey(t.getId())){
+					workers = workerlist.get(t.getId());
+					workers.add(assigned.get(ed).getNodeId());
+					QoS_Aware.workerlist.put(t.getId(), workers);
+				}
+				else{
+					workers.add(assigned.get(ed).getNodeId());
+					QoS_Aware.workerlist.put(t.getId(), workers);
+				}
+			}
+		}
 		return workerslots;
 	}
 
@@ -258,18 +270,20 @@ public class QoS_Aware {
 			Set<WorkerSlot> assignedworkerslots, String allocatedhost, boolean increasing){
 		// find out all the needs-scheduling components of this topology
 		WorkerSlot w = null;
-		//	    	
+		//used for toplogy to migrate from one to another with increasing size	    	
+		String tempdes = "";
 		String p = String.valueOf(getQueue(topology));
 		HashMap<String, ArrayList<String>> m = getList();
 		ArrayList<String> assignedhost = m.get(p);
 		//	      
 		// the list of all nodes for the given queue
-		ArrayList<SupervisorDetails> supernodes = new ArrayList<SupervisorDetails>();
+		HashMap<String, SupervisorDetails> supernodes = new HashMap<>();
 
 		//find all supervisor that corresponds to the priority queue
 		for (SupervisorDetails supervisor : supervisors) {
 			if(assignedhost.contains(supervisor.getHost())){
-				supernodes.add(supervisor);
+//				supernodes.add(supervisor);
+				supernodes.put(supervisor.getHost(), supervisor);
 				System.out.println("adding node "+ supervisor.getHost()+" , to "+topology.getName());
 			}
 		}
@@ -283,26 +297,52 @@ public class QoS_Aware {
 				return null;
 			}
 			else{
-				if(allocatedhost!= " " && supernodes.contains(allocatedhost)){
-					System.out.println("this topology "+topology.getId()+" ,already at the destinated host "+allocatedhost);
+				boolean temp = false;
+				System.out.println("allocated host at the moment is "+allocatedhost);
+				
+				if(allocatedhost!= " "){
+					System.out.println("now the nodes size is "+supernodes.size());
+					for(SupervisorDetails sd : supernodes.values()){
+						System.out.println("assigning supervisor host is "+sd.getId());
+						if (sd.getId().equals(allocatedhost)){
+							temp = true;
+							System.out.println("this topology "+topology.getId()+" ,already at the destinated host "+allocatedhost);
+						}
+						
+					}
+					// need to justify
+				if(temp){
 					if(increasing == false)
 						return null;
 					// the queue host increased, need to decide whether to move
 					else{
-						ArrayList<SupervisorDetails> nodesupdate = nodesReorder(supernodes, cluster);
-						// if the existing destination is the one with most slots, stay unchanged
-						if(allocatedhost.equals(nodesupdate.get(0))){
+						HashMap<String, SupervisorDetails> nodesupdate = supernodes;
+						HashMap<String,Integer> status = nodesReorder(supernodes, cluster);
+//						System.out.println(nodesupdate.size());
+						int max = 0;
+						String firstone = "";
+						for(String s: status.keySet()){
+							if(status.get(s)>max){
+								max = status.get(s);
+								firstone = s;
+							}
+						}
+						System.out.println("node update with "+supernodes.get(firstone).getId()+" as the first one");
+						// if the existing destination is the one with most slots, stay unchanged)
+						if(allocatedhost.equals(nodesupdate.get(firstone).getId())){
 							System.out.println("topology "+topology.getId()+" will not change the destinaion");
 							return null;
 						}
+						else{
+							tempdes = firstone;
+							System.out.println("the topology "+topology.getId()+" needs to migrate to "+tempdes);
+							
+							}
+						}
 					}
-				}
-				else{
-					ArrayList<SupervisorDetails> nodesupdate = new ArrayList<>();
-					if(supernodes.size()>1)
-						nodesupdate = nodesReorder(supernodes, cluster);
-					else 
-						nodesupdate = supernodes;
+				
+				
+					HashMap<String, SupervisorDetails> nodesupdate = supernodes;
 					System.out.println("need to reassign "+topology.getId());
 					cluster.freeSlots(assignedworkerslots);
 					System.out.println("size is "+exe.size());
@@ -310,8 +350,18 @@ public class QoS_Aware {
 					int templength = exe.size()/4;
 					System.out.println("temp length is "+templength+" ,and remain is "+remain);
 					int index = 0;	
+					HashMap<String, SupervisorDetails> templist = new HashMap<>();
+					if(tempdes!=""){
+						System.out.println("already find the destination with "+tempdes);
+						templist.put(tempdes, supernodes.get(tempdes));
+					}
 					for(int i =0; i<4; i++){
-						w = updateSlots(nodesupdate, cluster).get(0);
+						System.out.println("insdie assing loop the size is "+templist.size());
+						if(tempdes!="" && !updateSlots(templist, cluster).isEmpty()){
+							w = updateSlots(templist, cluster).get(0);
+						}
+						else 
+							w = updateSlots(nodesupdate, cluster).get(0);
 						ArrayList<ExecutorDetails> part = new ArrayList<ExecutorDetails>();
 						for(int j = index; j<index+templength; j++){
 							part.add(exe.get(j));
@@ -333,40 +383,70 @@ public class QoS_Aware {
 					}
 				}
 			}
-		}
-
+		
+	}
 
 		return w;
 	}
 
+	
+
 	// update the slot according to the nodes size
-	public ArrayList<SupervisorDetails> nodesReorder (ArrayList<SupervisorDetails> nodes, Cluster cluster){
+	public HashMap<String, Integer> nodesReorder (HashMap<String, SupervisorDetails> nodes, Cluster cluster){
 		//		ArrayList<WorkerSlot> availableSlots = new ArrayList<WorkerSlot>();
-		ArrayList<SupervisorDetails> updatelist = new ArrayList<>();
+		HashMap<String,Integer> updatelist = new HashMap<>();
 		if(nodes.size()>1){
-			int[] avail = new int[nodes.size()];
-			int minind = 0;
-			int maxind = nodes.size()-1;
-			for(int i = 0 ; i<nodes.size(); i++){
-				avail[i] = numofSlots(nodes.get(i), cluster);
-				//  							System.out.println("index "+i+", with number of slot "+avail[i]);
-				if(avail[i]<avail[minind])
-					minind = i;
-				if(avail[i]>=avail[maxind])
-					maxind = i;
+//			int[] avail = new int[nodes.size()];
+			HashMap<String, Integer> avail = new HashMap<>();
+//			int minind = 0;
+//			int maxind = nodes.size()-1;
+//			for(int i = 0 ; i<nodes.size(); i++){
+//				avail[i] = numofSlots(nodes.get(i), cluster);
+//				//  							System.out.println("index "+i+", with number of slot "+avail[i]);
+//				if(avail[i]<avail[minind])
+//					minind = i;
+//				if(avail[i]>=avail[maxind])
+//					maxind = i;
+//			}
+			int min = Integer.MAX_VALUE;
+			int max = Integer.MIN_VALUE;
+			String mi = "";
+			String ma = "";
+			for(String s : nodes.keySet()){
+				avail.put(s, numofSlots(nodes.get(s), cluster));	
 			}
-			if(avail.length==3){
-				updatelist.add(nodes.get(maxind));
-				for(int j = 0; j<3; j++){
-					if(j!=maxind && j!= minind)
-						updatelist.add(nodes.get(j));
+//			System.out.println("inside nodesreorder the size is "+avail.size());
+			for(String s : avail.keySet()){
+				if(avail.get(s)<min){
+					min = avail.get(s);
+					mi = s;
 				}
-				updatelist.add(nodes.get(minind));
+				if(avail.get(s)>max){
+					max = avail.get(s);
+					ma = s;
+				}
+			}
+			System.out.println("now the min is "+min+" with "+mi+" and the max is "+max+ " with "+ma);
+			if(avail.size()==3){
+				updatelist.put(ma , max);
+//				updatelist.add(nodes.get(maxind));
+				for(String s: nodes.keySet()){
+					if(!s.equals(mi) && !s.equals(ma))
+						updatelist.put(s, avail.get(s));
+				}
+//				for(int j = 0; j<3; j++){
+//					if(j!=maxind && j!= minind)
+//						updatelist.add(nodes.get(j));
+//				}
+//				updatelist.add(nodes.get(minind));
+				updatelist.put(ma, max);
 			}
 			else{
 				//  							System.out.println("minind "+minind+ " , maxind "+maxind);
-				updatelist.add(nodes.get(maxind));
-				updatelist.add(nodes.get(minind));
+//				updatelist.add(nodes.get(maxind));
+//				updatelist.add(nodes.get(minind));
+				updatelist.put(ma, max);
+				updatelist.put(mi, min);
 			}		
 		}
 		return updatelist;
@@ -386,13 +466,25 @@ public class QoS_Aware {
 	 * @param nodes
 	 * @return
 	 */
-	public ArrayList<WorkerSlot> updateSlots(ArrayList<SupervisorDetails> nodes, Cluster cluster){
+	public ArrayList<WorkerSlot> updateSlots(HashMap<String, SupervisorDetails> nodes, Cluster cluster){
 		ArrayList<WorkerSlot> availableSlots = new ArrayList<WorkerSlot>();
-		for(SupervisorDetails sd : nodes){
-			//					availableSlots.addAll(cluster.getAvailableSlots(sd));
-			for(WorkerSlot ws : cluster.getAvailableSlots(sd)){
-				availableSlots.add(ws);
+	
+		if(nodes.size()>0){
+			for(String s : nodes.keySet()){
+				//					availableSlots.addAll(cluster.getAvailableSlots(sd))
+				if(cluster.getAvailableSlots(nodes.get(s)).isEmpty()){
+					System.out.println("no enough space at supervisor "+s);
+					
+				}
+				else{
+					for(WorkerSlot ws : cluster.getAvailableSlots(nodes.get(s))){
+						availableSlots.add(ws);
+					}
+				}
 			}
+		}
+		else{
+			System.out.println("no availble slot in this updated list of nodes");
 		}
 		return availableSlots;
 	}
