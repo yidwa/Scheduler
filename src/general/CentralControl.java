@@ -96,10 +96,10 @@ public class CentralControl {
 	}
 
 	public static void main(String[] args) throws InterruptedException {
-		int loop = 5;
-//		int loop = 12;
+		int loop = 3;
+//		int loop = 30;
 		int waitime = 30;
-//		int waitime =300;
+//		int waitime =120;
 		CentralControl.executeParameter(loop, waitime);
 		System.out.println("all finished");
 	}

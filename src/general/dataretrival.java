@@ -70,7 +70,8 @@ public class dataretrival implements Runnable {
 	 * @param sr
 	 */
 	public void updateRates(StormREST sr){
-		sr.Topologyget(topologies,priority, false,queues);
+		sr.Topologyget(false);
+//		sr.Topologyget(topologies,priority, false,queues);
 		sr.Topologyinfo(topologies);
 		double arrv = 0;
 		double serv = 0; 

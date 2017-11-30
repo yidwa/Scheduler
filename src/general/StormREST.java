@@ -48,10 +48,11 @@ public class StormREST {
 
 	// update the running topology and their priority, update log file with new
 	// and killed topology
-	public void Topologyget(HashMap<String, Topology> topologies, HashMap<String, Integer> priority, boolean ini,
-			ArrayList<PriorityQueue> pq) {
-		Set<String> tlist = topologies.keySet();
-		ArrayList<PriorityQueue> queues = pq;
+//	public void Topologyget(HashMap<String, Topology> topologies, HashMap<String, Integer> priority, boolean ini,
+//			ArrayList<PriorityQueue> pq) {
+	public void Topologyget(boolean ini) {
+		Set<String> tlist = StormCluster.topologies.keySet();
+//		ArrayList<PriorityQueue> queues = pq;
 		ArrayList<String> copy = new ArrayList<String>();
 		// update info
 		if (ini == false)
@@ -80,40 +81,45 @@ public class StormREST {
 						int ind = name.indexOf("_");
 						pri = Integer.valueOf(name.substring(ind + 1, ind + 2));
 					}
+					System.out.println("test , the id now is "+id);
 					// initialize
 					if (ini) {
 						logchange = true;
 						sen += "add topology " + id + " with prioirty " + pri + "\n";
 						Topology t = new Topology(id, name);
-						topologies.put(id, t);
-						priority.put(id, pri);
-						PriorityQueue tempqueue = queues.get(pri-1);
+						StormCluster.topologies.put(id, t);
+						StormCluster.priority.put(id, pri);
+						PriorityQueue tempqueue = StormCluster.queue.get(pri-1);
 						tempqueue.setPrioirty(pri);
 						tempqueue.setSize(tempqueue.getSize()+1);
 						ArrayList<String> n = tempqueue.getNames();
 						n.add(id);
 						tempqueue.setNames(n);
 						topologyini = true;
+						
 					}
 					// update the topology if it is new and remove it from the active list if it is alive.
 					else {
-						if (!topologies.containsKey(id)) {
+						System.out.println("it's in update and the "+id+ "is exist? "+StormCluster.topologies.containsKey(id));
+						if (!StormCluster.topologies.containsKey(id)) {
 							logchange = true;
 							sen += "add topology " + id + " with prioirty " + pri + "\n";
 							Topology t = new Topology(id, name);
-							topologies.put(id, t);
-							priority.put(id, pri);
-							PriorityQueue tempqueue = queues.get(pri-1);
+							System.out.println("add new entry of id "+id +" :"+StormCluster.topologies.put(id, t));
+							System.out.println("now the topologies is in the size of "+StormCluster.topologies.size()+ " and "+StormCluster.topologies.containsKey(id));
+							StormCluster.priority.put(id, pri);
+							PriorityQueue tempqueue = StormCluster.queue.get(pri-1);
 							tempqueue.setSize(tempqueue.getSize()+1);
 							ArrayList<String> n = tempqueue.getNames();
 							n.add(id);
 							tempqueue.setNames(n);
 							topologyini = true;
 							sen+= " now the priority queues for priority "+pri +" is ";
-							for(String s: queues.get(pri-1).getNames()){
+							for(String s: StormCluster.queue.get(pri-1).getNames()){
 								sen += s+ " , ";
 							}
 							sen+="\n";
+							
 							}
 						// the given topology is still alive
 						else{
@@ -121,25 +127,31 @@ public class StormREST {
 							topologyini = false;
 						}
 					}
-					topologies.get(id).setUptime(uptimeSeconds);
-					topologySum(id, topologyini, topologies);
+					StormCluster.topologies.get(id).setUptime(uptimeSeconds);
+//					topologySum(id, topologyini, StormCluster.topologies);
 				}
 			}
 			if (copy.size() > 0) {
 				logchange = true;
 				sen += "  remove topology: ";
 				for (String s : copy) {
-					topologies.remove(s);
-					int p = priority.get(s);
-					queues.get(p-1).size--;
-					queues.get(p-1).names.remove(s);
+					StormCluster.topologies.remove(s);
+					int p = StormCluster.priority.get(s);
+					StormCluster.queue.get(p-1).size--;
+					StormCluster.queue.get(p-1).names.remove(s);
+					StormCluster.queue.get(p-1).hosts = new ArrayList<>();
 					sen += s + " ,";
 					System.out.println("the priority queus has been updated for priority "+p+ " with remove of "+ s);
 				}
 			}
-			CentralControl.setPriority(priority);
+			CentralControl.setPriority(StormCluster.priority);
+			//testing purpose
+			System.out.println("testing the prority queue");
+			for(PriorityQueue pp :StormCluster.queue){
+				System.out.println(pp.prioirty+" , "+pp.size+" , "+pp.names+" , "+pp.hosts.toString()+"\n");
+			}
 			if (logchange) {
-				Methods.writeFile(sen, "log.txt", true);
+				Methods.writeFile(sen, "log.txt", true);	
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block

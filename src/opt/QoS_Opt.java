@@ -25,11 +25,14 @@ public class QoS_Opt {
 	public QoS_Opt() {
 		// TODO Auto-generated constructor stub
 		QoS_Opt.lowLat = 55.0;
-		QoS_Opt.medLat = 20.0;
+		QoS_Opt.medLat = 25.0;
 		QoS_Opt.higLat = 15.0;
-		QoS_Opt.rho = 0.5;
-		QoS_Opt.eta = 0.25;
-		QoS_Opt.ipu = 0.25;
+		QoS_Opt.rho = 0.6;
+		QoS_Opt.eta = 0.2;
+		QoS_Opt.ipu = 0.2;
+//		QoS_Opt.rho = 0.8;
+//		QoS_Opt.eta = 0.1;
+//		QoS_Opt.ipu = 0.1;
 	
 	}
 	
@@ -63,7 +66,11 @@ public class QoS_Opt {
 	public static double qosCost(double latency, int pri){
 		double dif;
 		double exp  = getExp(pri);
-		dif = latency - exp;
+//		dif = latency - exp;
+		if(exp!=0)
+			dif = latency - exp/exp;
+		else
+			dif = latency-exp;
 		if(dif <= 0)
 			return 0;
 		else 
