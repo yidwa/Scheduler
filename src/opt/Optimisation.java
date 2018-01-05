@@ -224,7 +224,7 @@ public class Optimisation {
 		HashMap<String, Double> sortedchange = new HashMap<String, Double>();
 		HashMap<String, Integer> usage = getUsage();
 		int availcore = 0;
-		System.out.println("usage now is "+usage);
+//		System.out.println("usage now is "+usage);
 		
 		// model-based scheduler
 		sortedchange = (HashMap<String, Double>) sortResult(compo, changed,true);
@@ -304,8 +304,8 @@ public class Optimisation {
 //		System.out.println("reschedule for "+tid+" , "+result);
 //		System.out.println("sorted result for "+tid+" , "+sortResult(compo, result));
 //		System.out.println("usage once udpated is "+usage);	
-		System.out.println("before reschedle "+current.toString());
-		System.out.println("after rescheduelr "+scheduleupdate.toString());
+//		System.out.println("before reschedle "+current.toString());
+//		System.out.println("after rescheduelr "+scheduleupdate.toString());
 		return scheduleupdate;
 	}
 	

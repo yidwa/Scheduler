@@ -37,28 +37,159 @@ public class StormREST {
 		this.output = "";
 	}
 
-	// make a hard copy of the given list
-	public ArrayList<String> makecopy(Set<String> tlist) {
-		ArrayList<String> result = new ArrayList<String>();
-		for (String s : tlist) {
-			result.add(s);
-		}
-		return result;
-	}
+//	// make a hard copy of the given list
+//	public ArrayList<String> makecopy(Set<String> tlist) {
+//		ArrayList<String> result = new ArrayList<String>();
+//		for (String s : tlist) {
+//			result.add(s);
+//		}
+//		return result;
+//	}
 
 	// update the running topology and their priority, update log file with new
 	// and killed topology
 //	public void Topologyget(HashMap<String, Topology> topologies, HashMap<String, Integer> priority, boolean ini,
 //			ArrayList<PriorityQueue> pq) {
+//	public void Topologyget(boolean ini) {
+//		System.out.println("calling method topology get with ini "+ini);
+//		Set<String> tlist = StormCluster.topologies.keySet();
+////		ArrayList<PriorityQueue> queues = pq;
+//		ArrayList<String> compare = new ArrayList<String>();
+//		// update info
+//		
+//		boolean logchange = false;
+//		boolean topologyini = false;
+//		String sen = "";
+//		Connect("/api/v1/topology/summary");
+//
+//		try {
+//			while ((output = br.readLine()) != null) {
+//				JSONParser parser = new JSONParser();
+//				Object obj = parser.parse(output);
+//				JSONObject jobj = (JSONObject) obj;
+//				JSONArray topo = (JSONArray) jobj.get("topologies");
+//				for (int i = 0; i < topo.size(); i++) {
+//					obj = topo.get(i);
+//					jobj = (JSONObject) obj;
+//					String id = (String) jobj.get("id");
+//					String name = (String) jobj.get("name");
+////					Long uptimeSeconds = (Long) jobj.get("uptimeSeconds");
+//					// default priority is 3, the lowest level if it is not
+//					// included in the topology name
+//					int pri = 3;
+//					if (name.contains("_")) {
+//						int ind = name.indexOf("_");
+//						pri = Integer.valueOf(name.substring(ind + 1, ind + 2));
+//					}
+////					System.out.println("test , the id now is "+id);
+//					// initialize
+//					if (ini) {
+//						logchange = true;
+//						sen += "add topology " + id + " with prioirty " + pri + "\n";
+//						Topology t = new Topology(id, name);
+//						System.out.println("initialize for  "+id +" : "+StormCluster.topologies.put(id, t));
+//						StormCluster.priority.put(id, pri);
+//						PriorityQueue tempqueue = StormCluster.queue.get(pri-1);
+//						tempqueue.setPrioirty(pri);
+//						tempqueue.setSize(tempqueue.getSize()+1);
+//						ArrayList<String> n = tempqueue.getNames();
+//						n.add(id);
+//						tempqueue.setNames(n);
+//						topologyini = true;
+//						
+//					}
+//					// update the topology if it is new and remove it from the active list if it is alive.
+//					else {
+//						
+//						System.out.println("it's in update and the "+id+ "is exist? "+StormCluster.topologies.containsKey(id));
+//						//not yet added
+//						if (!StormCluster.topologies.containsKey(id)) {
+//							logchange = true;
+//							sen += "add topology " + id + " with prioirty " + pri + "\n";
+//							Topology t = new Topology(id, name);
+//							System.out.println("add new entry of id "+id +" :"+StormCluster.topologies.put(id, t));
+//							System.out.println("now the topologies is in the size of "+StormCluster.topologies.size()+ " and "+StormCluster.topologies.containsKey(id));
+//							StormCluster.priority.put(id, pri);
+//							PriorityQueue tempqueue = StormCluster.queue.get(pri-1);
+//							tempqueue.setSize(tempqueue.getSize()+1);
+//							ArrayList<String> n = tempqueue.getNames();
+//							n.add(id);
+//							tempqueue.setNames(n);
+//							topologyini = true;
+//							sen+= " now the priority queues for priority "+pri +" is ";
+//							for(String s: StormCluster.queue.get(pri-1).getNames()){
+//								sen += s+ " , ";
+//							}
+//							sen+="\n";
+//							
+//							}
+//						// the given topology is still alive
+//						else{
+//							compare.add(id);
+//							topologyini = false;
+//						}
+//					}
+////					StormCluster.topologies.get(id).setUptime(uptimeSeconds);
+//					topologySum(id, topologyini, StormCluster.topologies);
+//				}
+//			}
+//			if(ini == false){
+//				for(String s: StormCluster.topologies.keySet()){
+//					if(!compare.contains(s)){
+//						logchange = true;
+//						sen += "  remove topology: ";
+//						StormCluster.topologies.remove(s);
+//						System.out.println("remove topology "+s);
+//						int p = StormCluster.priority.get(s);
+//						StormCluster.queue.get(p-1).size--;
+//						StormCluster.queue.get(p-1).names.remove(s);
+//						StormCluster.queue.get(p-1).hosts = new ArrayList<>();
+//						sen += s + " ,";
+//					}
+//				}
+//			}
+////			if (copy.size() > 0) {
+////				logchange = true;
+////				sen += "  remove topology: ";
+////				for (String s : copy) {
+////					StormCluster.topologies.remove(s);
+////					int p = StormCluster.priority.get(s);
+////					StormCluster.queue.get(p-1).size--;
+////					StormCluster.queue.get(p-1).names.remove(s);
+////					StormCluster.queue.get(p-1).hosts = new ArrayList<>();
+////					sen += s + " ,";
+//////					System.out.println("the priority queus has been updated for priority "+p+ " with remove of "+ s);
+////				}
+////			}
+//			CentralControl.setPriority(StormCluster.priority);
+//			//testing purpose
+////			System.out.println("testing the prority queue");
+////			for(PriorityQueue pp :StormCluster.queue){
+////				System.out.println(pp.prioirty+" , "+pp.size+" , "+pp.names+" , "+pp.hosts.toString()+"\n");
+////			}
+//			if (logchange) {
+//				Methods.writeFile(sen, "log.txt", true);	
+//			}
+//		} catch (IOException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		} catch (ParseException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//		conn.disconnect();
+//	}
+
+	// try to rewrite
 	public void Topologyget(boolean ini) {
+		System.out.println("calling method topology get with ini "+ini);
 		Set<String> tlist = StormCluster.topologies.keySet();
 //		ArrayList<PriorityQueue> queues = pq;
-		ArrayList<String> copy = new ArrayList<String>();
+		ArrayList<String> compare = new ArrayList<String>();
 		// update info
-		if (ini == false)
-			copy = makecopy(tlist);
-		boolean logchange = false;
-		boolean topologyini = false;
+		
+		boolean logchange = true;
+		boolean topologyini = true;
 		String sen = "";
 		Connect("/api/v1/topology/summary");
 
@@ -68,26 +199,25 @@ public class StormREST {
 				Object obj = parser.parse(output);
 				JSONObject jobj = (JSONObject) obj;
 				JSONArray topo = (JSONArray) jobj.get("topologies");
-				for (int i = 0; i < topo.size(); i++) {
-					obj = topo.get(i);
-					jobj = (JSONObject) obj;
-					String id = (String) jobj.get("id");
-					String name = (String) jobj.get("name");
-					Long uptimeSeconds = (Long) jobj.get("uptimeSeconds");
-					// default priority is 3, the lowest level if it is not
-					// included in the topology name
-					int pri = 3;
-					if (name.contains("_")) {
-						int ind = name.indexOf("_");
-						pri = Integer.valueOf(name.substring(ind + 1, ind + 2));
-					}
-					System.out.println("test , the id now is "+id);
-					// initialize
-					if (ini) {
-						logchange = true;
+				String id = "";
+				if(ini){
+					for (int i = 0; i < topo.size(); i++) {
+						obj = topo.get(i);
+						jobj = (JSONObject) obj;
+						id = (String) jobj.get("id");
+						String name = (String) jobj.get("name");
+						//					Long uptimeSeconds = (Long) jobj.get("uptimeSeconds");
+						// default priority is 3, the lowest level if it is not
+						// included in the topology name
+						int pri = 3;
+						if (name.contains("_")) {
+							int ind = name.indexOf("_");
+							pri = Integer.valueOf(name.substring(ind + 1, ind + 2));
+						}
+						
 						sen += "add topology " + id + " with prioirty " + pri + "\n";
 						Topology t = new Topology(id, name);
-						StormCluster.topologies.put(id, t);
+						System.out.println("add new entry of id "+id +" :"+StormCluster.topologies.put(id, t));
 						StormCluster.priority.put(id, pri);
 						PriorityQueue tempqueue = StormCluster.queue.get(pri-1);
 						tempqueue.setPrioirty(pri);
@@ -98,15 +228,29 @@ public class StormREST {
 						topologyini = true;
 						
 					}
+					logchange = true;
+					
+				}
 					// update the topology if it is new and remove it from the active list if it is alive.
-					else {
+				else{
+					
+					for (int i = 0; i < topo.size(); i++) {
+						obj = topo.get(i);
+						jobj = (JSONObject) obj;
+						id = (String) jobj.get("id");
+						String name = (String) jobj.get("name");
+						int pri = 3;
+						if (name.contains("_")) {
+							int ind = name.indexOf("_");
+							pri = Integer.valueOf(name.substring(ind + 1, ind + 2));
+						}
+					
 						System.out.println("it's in update and the "+id+ "is exist? "+StormCluster.topologies.containsKey(id));
+						//not yet added
 						if (!StormCluster.topologies.containsKey(id)) {
-							logchange = true;
 							sen += "add topology " + id + " with prioirty " + pri + "\n";
 							Topology t = new Topology(id, name);
 							System.out.println("add new entry of id "+id +" :"+StormCluster.topologies.put(id, t));
-							System.out.println("now the topologies is in the size of "+StormCluster.topologies.size()+ " and "+StormCluster.topologies.containsKey(id));
 							StormCluster.priority.put(id, pri);
 							PriorityQueue tempqueue = StormCluster.queue.get(pri-1);
 							tempqueue.setSize(tempqueue.getSize()+1);
@@ -119,37 +263,45 @@ public class StormREST {
 								sen += s+ " , ";
 							}
 							sen+="\n";
-							
+							topologyini = true;
 							}
 						// the given topology is still alive
 						else{
-							copy.remove(id);
+							System.out.println("id "+id+" is already existed");
+							compare.add(id);
 							topologyini = false;
 						}
+						System.out.println("before sum for "+id +" , ini is "+topologyini);
+						topologySum(id, topologyini, StormCluster.topologies);
+						System.out.println("after sum");
 					}
-					StormCluster.topologies.get(id).setUptime(uptimeSeconds);
-//					topologySum(id, topologyini, StormCluster.topologies);
 				}
+				
 			}
-			if (copy.size() > 0) {
-				logchange = true;
-				sen += "  remove topology: ";
-				for (String s : copy) {
-					StormCluster.topologies.remove(s);
-					int p = StormCluster.priority.get(s);
-					StormCluster.queue.get(p-1).size--;
-					StormCluster.queue.get(p-1).names.remove(s);
-					StormCluster.queue.get(p-1).hosts = new ArrayList<>();
-					sen += s + " ,";
-					System.out.println("the priority queus has been updated for priority "+p+ " with remove of "+ s);
+		    System.out.println("update finshed, check if any topology is removed");
+		    
+			if(ini == false){
+				for(String s: StormCluster.topologies.keySet()){
+					if(!compare.contains(s)){
+						logchange = true;
+						sen += "  remove topology: "+s;
+						StormCluster.topologies.remove(s);
+						System.out.println("remove topology "+s);
+						int p = StormCluster.priority.get(s);
+						StormCluster.queue.get(p-1).size--;
+						StormCluster.queue.get(p-1).names.remove(s);
+						StormCluster.queue.get(p-1).hosts = new ArrayList<>();
+						sen += s + " ,";
+					}
 				}
 			}
 			CentralControl.setPriority(StormCluster.priority);
 			//testing purpose
-			System.out.println("testing the prority queue");
-			for(PriorityQueue pp :StormCluster.queue){
-				System.out.println(pp.prioirty+" , "+pp.size+" , "+pp.names+" , "+pp.hosts.toString()+"\n");
-			}
+//			System.out.println("testing the prority queue");
+//			for(PriorityQueue pp :StormCluster.queue){
+//				System.out.println(pp.prioirty+" , "+pp.size+" , "+pp.names+" , "+pp.hosts.toString()+"\n");
+//			}
+	
 			if (logchange) {
 				Methods.writeFile(sen, "log.txt", true);	
 			}
@@ -162,7 +314,8 @@ public class StormREST {
 		}
 		conn.disconnect();
 	}
-
+	
+	
 	/**
 	 * collect the worker information of each topology and write the information to a specific file
 	 * @param topologies, the collection of active topologies
@@ -171,13 +324,22 @@ public class StormREST {
 		if (topologies.size() == 0)
 			System.out.println("no topology is working at the moment");
 		else {
-			for (String s : topologies.keySet()) {
-				topologyworker(s, topologies);
+			for (String tname : topologies.keySet()) {
+				topologyworker(tname, topologies);
 			}
+			//testing purpose
+//			for(String tname : topologies.keySet()){
+//				System.out.println("topology :"+tname+":");
+//				for(Executor e: topologies.get(tname).getTworker()){
+//					System.out.println(e.getHost()+" , "+e.getPort()+",");
+//				}
+//					
+//			}
+			String sen="";
 			for (Entry<String, Topology> e : topologies.entrySet()) {
-				String sen = e.getKey() + " , " + e.getValue().tworker.toString() + "\n";
-//				Methods.writeFile(sen, "tworkers.txt", true);
+				sen += e.getKey() + " , " + e.getValue().tworker.toString() + "\n";
 			}
+			Methods.writeFile(sen, "tworkers.txt", true);
 		}
 	}
 
@@ -207,7 +369,7 @@ public class StormREST {
 					Executor e = new Executor(h, p);
 					temp.add(e);
 				}
-				System.out.println("now update the Tworker for "+id+" with "+temp.size());
+//				System.out.println("now update the Tworker for "+id+" with "+temp.size());
 				topologies.get(id).setTworker(temp);
 			}
 		} catch (IOException e) {
@@ -278,28 +440,51 @@ public class StormREST {
 				topo = (JSONArray) jobj.get("spouts");
 				tooo = (JSONArray) jobj.get("bolts");
 				if (topo.size() > 0) {
-					for (int i = 0; i < topo.size(); i++) {
-						if (ini == true) {
-							obj = topo.get(0);
-							jobj = (JSONObject) obj;
-							spoutid = (String) jobj.get("spoutId");
-							long thread = (Long) jobj.get("executors");
-							Component c = new Component(spoutid, thread, true);
-							long failed = (Long) jobj.get("failed");
-							topologies.get(tid).setFailed(failed);
-							com.put(c.cid, c);
-							topologies.get(tid).setCompo(com);
-
-						} else {
-							obj = topo.get(0);
-							jobj = (JSONObject) obj;
-							spoutid = (String) jobj.get("spoutId");
-							Long lastemit = (Long) jobj.get("emitted");
-							Long lasttrans = (Long) jobj.get("transferred");
-							topologies.get(tid).getCompo().get(spoutid).setLast(lastemit, lasttrans);
-							emit = lastemit;
-						}
+					
+					obj = topo.get(0);
+					jobj = (JSONObject) obj;
+					spoutid = (String) jobj.get("spoutId");
+					long thread = (Long) jobj.get("executors");
+					System.out.println("spout size "+topo.size()+" id "+spoutid+" , thread "+thread);
+					if(ini){
+						System.out.println("ini the spout");
+						Component c = new Component(spoutid, thread, true);
+						com.put(c.cid, c);
+						topologies.get(tid).setCompo(com);
+						System.out.println("update the spout with id "+c.cid);
 					}
+					else{
+						System.out.println("update the spout");
+						Long lastemit = (Long) jobj.get("emitted");
+						Long lasttrans = (Long) jobj.get("transferred");
+						topologies.get(tid).getCompo().get(spoutid).setLast(lastemit, lasttrans);
+						emit = lastemit;
+					}
+//					for (int i = 0; i < topo.size(); i++) {
+//						if (ini == true) {
+//							//get the spout
+//							obj = topo.get(0);
+//							jobj = (JSONObject) obj;
+//							spoutid = (String) jobj.get("spoutId");
+//							long thread = (Long) jobj.get("executors");
+//							Component c = new Component(spoutid, thread, true);
+////							long failed = (Long) jobj.get("failed");
+////							topologies.get(tid).setFailed(failed);
+//							com.put(c.cid, c);
+//							topologies.get(tid).setCompo(com);
+//							System.out.println("update the spout with id "+c.cid);
+//
+//						} else {
+//							obj = topo.get(0);
+//							jobj = (JSONObject) obj;
+//							spoutid = (String) jobj.get("spoutId");
+//							Long lastemit = (Long) jobj.get("emitted");
+//							Long lasttrans = (Long) jobj.get("transferred");
+//							topologies.get(tid).getCompo().get(spoutid).setLast(lastemit, lasttrans);
+//							emit = lastemit;
+//						}
+//					}
+					System.out.println("spouts have been updated for "+tid);
 					updateComponentThread(tid, spoutid, topologies, ini, emit, true);
 					topologyBoltInitial(tid, ini, topologies, tooo);
 					updateTopolgoyStats(tid, stats, topologies);
@@ -310,7 +495,8 @@ public class StormREST {
 				// if the component are not initialized yet, just remove the
 				// topology and update later
 				else {
-					topologies.remove(tid);
+//					topologies.remove(tid);
+					System.out.println("the topology "+tid+" is not exist");
 				}
 			}
 		} catch (IOException e) {
@@ -431,8 +617,57 @@ public class StormREST {
 	 * @return
 	 */
 
+	
+	//temporarily removed, since something wrong with the emit rate retrieval
+//	public double freqInfo(String tid, String cid, HashMap<String, Topology> topologies) {
+//		Connect("/api/v1/topology/" + tid + "/component/" + cid);
+//		double result = 0;
+////		Object objj= null;
+//		JSONObject jobjj = null;
+//		try {
+//			while ((output = br.readLine()) != null) {
+//				JSONParser parser = new JSONParser();
+//				Object obj = parser.parse(output);
+//				JSONObject jobj = (JSONObject) obj;
+//				JSONArray temp = (JSONArray) jobj.get("spoutSummary");
+//				search:
+//					for(int i = 0; i<temp.size(); i++){
+//						Object o = temp.get(i);
+//						JSONObject jo = (JSONObject) o;
+//						String timeframe = (String) jo.get("window");
+//						if(timeframe.equals("600")){
+////							objj = o;
+//							jobjj =jo;
+//							break search;
+//						}
+//				}
+//				Long emitted = (Long) jobjj.get("emitted");
+//				Long uptime = 
+//				System.out.println("get uptime for "+tid+" inside freqiNfo "+uptime);
+//				if(uptime<600)
+//					result = freqCal(uptime, emitted);
+//				else
+//					result = freqCal((long)600, emitted);
+//				
+////				System.out.println("freqcal "+ "uptime "+ uptime+ " emitted " + emitted+ " , "+result);
+////				System.out.println("the result is inside freqInfo is "+result);
+//				topologies.get(tid).getCompo().get(cid).setTotalprocess(result);
+////				System.out.println("the result after setting is inside freqInfo is "+result);
+//			}
+//
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		} catch (ParseException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//		conn.disconnect();
+//		return result;
+//
+//	}
+
 	public double freqInfo(String tid, String cid, HashMap<String, Topology> topologies) {
-		Connect("/api/v1/topology/" + tid + "/component/" + cid);
+		Connect("/api/v1/topology/" + tid);
 		double result = 0;
 //		Object objj= null;
 		JSONObject jobjj = null;
@@ -441,7 +676,9 @@ public class StormREST {
 				JSONParser parser = new JSONParser();
 				Object obj = parser.parse(output);
 				JSONObject jobj = (JSONObject) obj;
-				JSONArray temp = (JSONArray) jobj.get("spoutSummary");
+//				jobj.getClass().getName()
+				String uptimetext = (String)jobj.get("uptime"); 
+				JSONArray temp = (JSONArray) jobj.get("topologyStats");
 				search:
 					for(int i = 0; i<temp.size(); i++){
 						Object o = temp.get(i);
@@ -454,7 +691,8 @@ public class StormREST {
 						}
 				}
 				Long emitted = (Long) jobjj.get("emitted");
-				Long uptime = topologies.get(tid).getUptime();
+				Long uptime = timeConvert(uptimetext);
+//				System.out.println("get uptime for "+tid+" inside freqiNfo "+uptime+ " , emitted "+emitted);
 				if(uptime<600)
 					result = freqCal(uptime, emitted);
 				else
@@ -476,7 +714,36 @@ public class StormREST {
 		return result;
 
 	}
+	/**
+	 * convert the up time from sting to long value
+	 * @param timetext
+	 * @return
+	 */
+	public long timeConvert(String timetext){
+		String temptext = timetext;
+		long hour = 0;
+		long min = 0;
+		long sec = 0;
+	
+		if(temptext.contains("h")){
+			String[] ht = temptext.split("h\\s");
+			hour = Long.parseLong(ht[0]);
+			temptext = ht[1];
+		}
+		if(temptext.contains("m")){
+			String[] mt = temptext.split("m\\s");
+			min = Long.parseLong(mt[0]);
+			temptext = mt[1];
+		}
+		if(temptext.contains("s")){
+			String[] st = temptext.split("s");
+			sec = Long.parseLong(st[0]);
+		}	
+		return hour*3600+min*60+sec;
+	}
+	
 
+	
 	/**
 	 * calculate the emit rate 
 	 * @param uptime
@@ -489,7 +756,7 @@ public class StormREST {
 //		result = Double.valueOf(formatter.format(emitted / uptime));
 //		System.out.println("inside freqCal "+uptime+ " , emitted "+emitted);
 		// update the result to show the arrvial time in ms
-		result = Double.valueOf(Methods.formatter.format(uptime*1000 / emitted));
+		result = Double.valueOf(Methods.formatter.format(uptime*1000.0 / emitted));
 		return result;
 	}
 

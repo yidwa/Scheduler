@@ -19,7 +19,7 @@ public class Topology {
 	String shape;
 	HashMap<String,Component> compo;
 	ArrayList<ArrayList<String>> compostruct;
-	Long uptime;
+//	Long uptime;
 	Long workers;
 	int layer;
 	Map<String, Long> bolts;
@@ -40,7 +40,7 @@ public class Topology {
 		this.tthread = new HashMap<String, ArrayList<Executor>>();
 		this.compo = new HashMap<String,Component>();
 		this.compostruct = new ArrayList<ArrayList<String>>();
-		this.uptime = (long) 0;
+//		this.uptime = (long) 0;
 		this.shape = tname;
 		this.layer = 0;
 		this.systememit = 0;
@@ -405,13 +405,13 @@ public class Topology {
 		this.compostruct = compostruct;
 	}
 
-	public Long getUptime() {
-		return uptime;
-	}
-
-	public void setUptime(Long uptime) {
-		this.uptime = uptime;
-	}
+//	public Long getUptime() {
+//		return uptime;
+//	}
+//
+//	public void setUptime(Long uptime) {
+//		this.uptime = uptime;
+//	}
 
 	@Override
 	public String toString() {

@@ -109,9 +109,9 @@ public class MetricUpdate implements Runnable {
 			    
 			}
 			//comment for tesitng purpose
-			System.out.println("metric update "+sen);
+//			System.out.println("metric update "+sen);
 //			System.out.println("priority check "+priority.size());
-			System.out.println("before optimiation ");
+//			System.out.println("before optimiation ");
 			
 			
 			
@@ -120,10 +120,10 @@ public class MetricUpdate implements Runnable {
 			
 			
 			
-			System.out.println("after optimiation ");
+//			System.out.println("after optimiation ");
 //			System.out.println("after cpuscheduler "+mapping.size());
 			String mappresult = "";
-			System.out.println("mapping result ");
+//			System.out.println("mapping result ");
 //			for(String s: mapping.keySet()){
 //				System.out.println(mapping.get(s).toString());
 //			}

@@ -119,6 +119,7 @@ public class Component {
 	 * @param arr , true is to update the arrival rate, false is to update the service rate
 	 */
 	public void updateArr_Ser(Double numincoming, boolean arr){
+		
 		ArrayList<Double> temp = new ArrayList<Double>();
 		if(arr == true)
 			temp = getArrv();
@@ -129,6 +130,7 @@ public class Component {
 			temp.remove(0);
 		}
 		temp.add(numincoming);
+		
 		if( arr == true){
 			setArrv(temp);
 		}

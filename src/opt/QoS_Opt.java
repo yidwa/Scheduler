@@ -149,7 +149,7 @@ public class QoS_Opt {
 		double cpucost = cpuCost(prohost);
 		double qoscost = qosQueuecost(pq, topologies, prohost.size());
 		result =  switchcost + cpucost + qoscost;
-		System.out.println("schedule "+prohost.toString()+" switch cost  "+switchcost+" , cpu cost "+cpucost+" , qos cost "+qoscost);
+//		System.out.println("schedule "+prohost.toString()+" switch cost  "+switchcost+" , cpu cost "+cpucost+" , qos cost "+qoscost);
 		return result;
 	}
 	
@@ -165,7 +165,7 @@ public class QoS_Opt {
 				result = option;
 			}
 		}
-		System.out.println("the optimial cost is "+cost+ " with schedule "+result.toString());
+//		System.out.println("the optimial cost is "+cost+ " with schedule "+result.toString());
 		return result;
 	}
 	
