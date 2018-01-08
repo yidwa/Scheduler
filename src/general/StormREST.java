@@ -20,7 +20,6 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
-import com.sun.xml.bind.v2.runtime.unmarshaller.XsiNilLoader.Array;
 
 public class StormREST {
 	URL url;
@@ -446,19 +445,20 @@ public class StormREST {
 					spoutid = (String) jobj.get("spoutId");
 					long thread = (Long) jobj.get("executors");
 					System.out.println("spout size "+topo.size()+" id "+spoutid+" , thread "+thread);
-					if(ini){
-						System.out.println("ini the spout");
-						Component c = new Component(spoutid, thread, true);
-						com.put(c.cid, c);
-						topologies.get(tid).setCompo(com);
-						System.out.println("update the spout with id "+c.cid);
-					}
-					else{
+					
+					if(topologies.get(tid).getCompo().size()>0 && topologies.get(tid).getCompo().containsKey(spoutid)){
 						System.out.println("update the spout");
 						Long lastemit = (Long) jobj.get("emitted");
 						Long lasttrans = (Long) jobj.get("transferred");
 						topologies.get(tid).getCompo().get(spoutid).setLast(lastemit, lasttrans);
 						emit = lastemit;
+						
+					}
+					else{
+						Component c = new Component(spoutid, thread, true);
+						com.put(c.cid, c);
+						topologies.get(tid).setCompo(com);
+						System.out.println("update the spout with id "+c.cid);
 					}
 //					for (int i = 0; i < topo.size(); i++) {
 //						if (ini == true) {
@@ -486,7 +486,9 @@ public class StormREST {
 //					}
 					System.out.println("spouts have been updated for "+tid);
 					updateComponentThread(tid, spoutid, topologies, ini, emit, true);
+					System.out.println("spout thread updated");
 					topologyBoltInitial(tid, ini, topologies, tooo);
+					System.out.println("bolts have been udpated");
 					updateTopolgoyStats(tid, stats, topologies);
 					if (ini == true){
 						topologies.get(tid).initopology();
@@ -560,17 +562,38 @@ public class StormREST {
 	 */
 	public void topologyBoltInitial(String id, boolean ini, HashMap<String, Topology> topologies, JSONArray bolt) {
 		HashMap<String, Long> compos = new HashMap<String, Long>();
+		boolean needreorder = false;
 		JSONArray temp = bolt;
 		for (int i = 0; i < temp.size(); i++) {
 			Object obj = temp.get(i);
 			JSONObject jobj = (JSONObject) obj;
 			String boltid = (String) jobj.get("boltId");
-			if (ini == true) {
-				long thread = updateComponentThread(id, boltid, topologies, ini, 0, false);
-				compos.put(boltid, thread);
-			}
-			// update the components
-			else {
+			System.out.println("start ini for bolt "+boltid+ " , ini is "+ini);
+//			if (ini == true) {
+//				long thread = updateComponentThread(id, boltid, topologies, ini, 0, false);
+//				compos.put(boltid, thread);
+//				System.out.println("bolt "+boltid+" finished ini");
+//			}
+//			// update the components
+//			else {
+//				Long executed = (Long) jobj.get("executed");
+//				Long emitted = (Long) jobj.get("emitted");
+//				Long transferred = (Long) jobj.get("transferred");
+//				String latency = (String) jobj.get("executeLatency");
+//				String processlat = (String) jobj.get("processLatency");
+//				Component c = topologies.get(id).getCompo().get(boltid);
+//				c.setLast(emitted, transferred);
+////				c.setExecute(executed);
+//
+//				double latencyupdate = Double.valueOf(Methods.formatter.format(1000 / Double.valueOf(latency)));
+//				c.updateArr_Ser(latencyupdate, false);
+//				c.setExeLatency(Double.valueOf(latency));
+//				c.setProcLatency(Double.valueOf(processlat));
+//				updateComponentThread(id, boltid, topologies, ini, emitted, false);
+//				System.out.println("bolt "+boltid+" finished update");
+//			}
+			if(topologies.get(id).getCompo().size()>0 && topologies.get(id).getCompo().containsKey(boltid)){
+				System.out.println("component contains "+boltid);
 				Long executed = (Long) jobj.get("executed");
 				Long emitted = (Long) jobj.get("emitted");
 				Long transferred = (Long) jobj.get("transferred");
@@ -579,16 +602,25 @@ public class StormREST {
 				Component c = topologies.get(id).getCompo().get(boltid);
 				c.setLast(emitted, transferred);
 //				c.setExecute(executed);
-
+//
 				double latencyupdate = Double.valueOf(Methods.formatter.format(1000 / Double.valueOf(latency)));
 				c.updateArr_Ser(latencyupdate, false);
 				c.setExeLatency(Double.valueOf(latency));
 				c.setProcLatency(Double.valueOf(processlat));
 				updateComponentThread(id, boltid, topologies, ini, emitted, false);
-
+				System.out.println("bolt "+boltid+" finished update");
+			}
+			else{
+				System.out.println("component not contains "+boltid);
+				long thread = updateComponentThread(id, boltid, topologies, ini, 0, false);
+				System.out.println("thread for "+boltid +" is "+thread);
+				compos.put(boltid, thread);
+				needreorder = true;
+				System.out.println("bolt "+boltid+" finished ini");
 			}
 		}
-		if (ini == true) {
+		if (needreorder) {
+			System.out.println("iniitlai need ordering");
 			Map<String, Long> bolts = orderCompos(compos);
 			topologies.get(id).setBolts(bolts);
 		}
@@ -873,9 +905,10 @@ public class StormREST {
 				Object obj = parser.parse(output);
 				JSONObject jobj = (JSONObject) obj;
 				result = (Long) jobj.get("executors");
-				if (ini == true) {
+				if (ini) {
 					return result;
-				} else {
+				}
+				else {
 					JSONArray systemperform;
 					// it is bolt 
 					if (spout == false) {
@@ -883,18 +916,24 @@ public class StormREST {
 					} else {
 						systemperform = (JSONArray) jobj.get("spoutSummary");
 					}
+					System.out.println("ini is false and start to collect bolt executor states");
 					JSONArray temp = (JSONArray) jobj.get("executorStats");
+					System.out.println("collect exuecutor states and ready to enter updatecompentsys");
 					updateComponentsys(tid, cid, systemperform, topologies, spout);
-					ArrayList<Executor> exe;
+					ArrayList<Executor> exe=new ArrayList<Executor>();
 					ArrayList<Executor> check = new ArrayList<Executor>();
 
-					if (topologies.get(tid).getCompo().get(cid).getExecutors().size() > 0) {
-						exe = topologies.get(tid).getCompo().get(cid).getExecutors();
-						// for checking if an executor has been removed
-						check.addAll(exe);
-						ctmap = topologies.get(tid).getCompo().get(cid).getThreads();
-					} else {
-						exe = new ArrayList<Executor>();
+					if (topologies.get(tid).getCompo().containsKey(cid)){
+						System.out.println("insdie updatecomponethread , contains "+cid);
+						if(topologies.get(tid).getCompo().get(cid).getExecutors().size() > 0) {
+							exe = topologies.get(tid).getCompo().get(cid).getExecutors();
+							// for checking if an executor has been removed
+							check.addAll(exe);
+							ctmap = topologies.get(tid).getCompo().get(cid).getThreads();
+						} 
+					}else {
+						System.out.println("insdie updatecomponethread , not contains "+cid);
+						
 						ctmap = new HashMap<String, ComponentThread>();
 					}
 					for (int i = 0; i < temp.size(); i++) {
@@ -944,11 +983,12 @@ public class StormREST {
 						topologies.get(tid).getCschedule().put(ctid, host);
 					}
 					updateExecutors(tid, cid, check, exe, topologies);
-
 				}
 			}
-
-			topologies.get(tid).getCompo().get(cid).setThreads(ctmap);
+//			System.out.println("threads upsdated finsh inside");
+			if(topologies.get(tid).getCompo().containsKey(cid))
+				topologies.get(tid).getCompo().get(cid).setThreads(ctmap);
+		
 			// System.out.println("check executor
 			// "+topologies.get(tid).getCompo().get(cid).threads.toString());
 
@@ -1009,8 +1049,10 @@ public class StormREST {
 				}
 			}
 		}
-		topologies.get(tid).getCompo().get(cid).setValuealltime(valuealltime);
+		if(topologies.get(tid).getCompo().containsKey(cid))
+			topologies.get(tid).getCompo().get(cid).setValuealltime(valuealltime);
 		topologies.get(tid).getSystemcolatency().put(cid, Double.valueOf(cl));
+
 	}
 
 	/**
@@ -1023,12 +1065,24 @@ public class StormREST {
 	 */
 	public void updateExecutors(String tid, String cid, ArrayList<Executor> check, ArrayList<Executor> update,
 			HashMap<String, Topology> topologies) {
+//		for(Executor e: check){
+//			System.out.print(e.host+" , "+e.port+" ; ");
+//		}
+//		System.out.println();
+//		System.out.println("udpate is ");
+//		for(Executor e:update){
+//			System.out.print(e.host+" , "+e.port+" ; ");
+//		}
+//		System.out.println();
 		if (check.size() > 0) {
 			for (Executor e : check) {
 				update.remove(e);
 			}
 		}
-		topologies.get(tid).getCompo().get(cid).setExecutors(update);
+		if(topologies.get(tid).getCompo().containsKey(cid)){
+			topologies.get(tid).getCompo().get(cid).setExecutors(update);
+		}
+//		System.out.println("finsh updateing executors inside");
 	}
 
 	

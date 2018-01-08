@@ -214,6 +214,15 @@ public class ComponentThread {
 		this.prob = prob;
 	}
 
+
+	@Override
+	public String toString() {
+		return "ComponentThread [executelatency=" + executelatency + ", processlatency=" + processlatency + ", cid="
+				+ cid + ", prob=" + prob + ", execute=" + execute + ", totalexecute=" + totalexecute + ", ack=" + ack
+				+ ", compoemit=" + compoemit + ", changedtype=" + changedtype + ", executor=" + executor + ", ctid="
+				+ ctid + "]";
+	}
+
 	
 //	public long getEmit() {
 //	return emit;
