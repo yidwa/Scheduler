@@ -181,13 +181,12 @@ public class StormREST {
 
 	// try to rewrite
 	public void Topologyget(boolean ini) {
-		System.out.println("calling method topology get with ini "+ini);
-		Set<String> tlist = StormCluster.topologies.keySet();
+//		Set<String> tlist = StormCluster.topologies.keySet();
 //		ArrayList<PriorityQueue> queues = pq;
 		ArrayList<String> compare = new ArrayList<String>();
 		// update info
 		
-		boolean logchange = true;
+	
 		boolean topologyini = true;
 		String sen = "";
 		Connect("/api/v1/topology/summary");
@@ -227,12 +226,12 @@ public class StormREST {
 						topologyini = true;
 						
 					}
-					logchange = true;
+					
 					
 				}
 					// update the topology if it is new and remove it from the active list if it is alive.
 				else{
-					
+					compare = new ArrayList<>();
 					for (int i = 0; i < topo.size(); i++) {
 						obj = topo.get(i);
 						jobj = (JSONObject) obj;
@@ -246,7 +245,13 @@ public class StormREST {
 					
 						System.out.println("it's in update and the "+id+ "is exist? "+StormCluster.topologies.containsKey(id));
 						//not yet added
-						if (!StormCluster.topologies.containsKey(id)) {
+						if (StormCluster.topologies.containsKey(id)) {
+							System.out.println("id "+id+" is already existed");
+							compare.add(id);
+							topologyini = false;	
+						}
+						// the given topology is still alive
+						else{
 							sen += "add topology " + id + " with prioirty " + pri + "\n";
 							Topology t = new Topology(id, name);
 							System.out.println("add new entry of id "+id +" :"+StormCluster.topologies.put(id, t));
@@ -263,35 +268,32 @@ public class StormREST {
 							}
 							sen+="\n";
 							topologyini = true;
-							}
-						// the given topology is still alive
-						else{
-							System.out.println("id "+id+" is already existed");
 							compare.add(id);
-							topologyini = false;
 						}
-						System.out.println("before sum for "+id +" , ini is "+topologyini);
 						topologySum(id, topologyini, StormCluster.topologies);
-						System.out.println("after sum");
 					}
 				}
 				
 			}
-		    System.out.println("update finshed, check if any topology is removed");
 		    
 			if(ini == false){
+				String temp ="";
+				boolean rem = false;
 				for(String s: StormCluster.topologies.keySet()){
 					if(!compare.contains(s)){
-						logchange = true;
-						sen += "  remove topology: "+s;
+						rem = true;
+						temp += s+" , ";
 						StormCluster.topologies.remove(s);
 						System.out.println("remove topology "+s);
 						int p = StormCluster.priority.get(s);
 						StormCluster.queue.get(p-1).size--;
 						StormCluster.queue.get(p-1).names.remove(s);
 						StormCluster.queue.get(p-1).hosts = new ArrayList<>();
-						sen += s + " ,";
 					}
+				}
+				if(rem){
+					sen += "remove topology : "+temp;
+					sen += "\n";
 				}
 			}
 			CentralControl.setPriority(StormCluster.priority);
@@ -301,9 +303,9 @@ public class StormREST {
 //				System.out.println(pp.prioirty+" , "+pp.size+" , "+pp.names+" , "+pp.hosts.toString()+"\n");
 //			}
 	
-			if (logchange) {
-				Methods.writeFile(sen, "log.txt", true);	
-			}
+			System.out.println("calling write file : "+sen);
+			Methods.writeFile(sen, "log.txt", true);	
+			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -444,10 +446,8 @@ public class StormREST {
 					jobj = (JSONObject) obj;
 					spoutid = (String) jobj.get("spoutId");
 					long thread = (Long) jobj.get("executors");
-					System.out.println("spout size "+topo.size()+" id "+spoutid+" , thread "+thread);
 					
 					if(topologies.get(tid).getCompo().size()>0 && topologies.get(tid).getCompo().containsKey(spoutid)){
-						System.out.println("update the spout");
 						Long lastemit = (Long) jobj.get("emitted");
 						Long lasttrans = (Long) jobj.get("transferred");
 						topologies.get(tid).getCompo().get(spoutid).setLast(lastemit, lasttrans);
@@ -458,7 +458,6 @@ public class StormREST {
 						Component c = new Component(spoutid, thread, true);
 						com.put(c.cid, c);
 						topologies.get(tid).setCompo(com);
-						System.out.println("update the spout with id "+c.cid);
 					}
 //					for (int i = 0; i < topo.size(); i++) {
 //						if (ini == true) {
@@ -484,11 +483,8 @@ public class StormREST {
 //							emit = lastemit;
 //						}
 //					}
-					System.out.println("spouts have been updated for "+tid);
 					updateComponentThread(tid, spoutid, topologies, ini, emit, true);
-					System.out.println("spout thread updated");
 					topologyBoltInitial(tid, ini, topologies, tooo);
-					System.out.println("bolts have been udpated");
 					updateTopolgoyStats(tid, stats, topologies);
 					if (ini == true){
 						topologies.get(tid).initopology();
@@ -568,7 +564,6 @@ public class StormREST {
 			Object obj = temp.get(i);
 			JSONObject jobj = (JSONObject) obj;
 			String boltid = (String) jobj.get("boltId");
-			System.out.println("start ini for bolt "+boltid+ " , ini is "+ini);
 //			if (ini == true) {
 //				long thread = updateComponentThread(id, boltid, topologies, ini, 0, false);
 //				compos.put(boltid, thread);
@@ -593,7 +588,6 @@ public class StormREST {
 //				System.out.println("bolt "+boltid+" finished update");
 //			}
 			if(topologies.get(id).getCompo().size()>0 && topologies.get(id).getCompo().containsKey(boltid)){
-				System.out.println("component contains "+boltid);
 				Long executed = (Long) jobj.get("executed");
 				Long emitted = (Long) jobj.get("emitted");
 				Long transferred = (Long) jobj.get("transferred");
@@ -608,19 +602,15 @@ public class StormREST {
 				c.setExeLatency(Double.valueOf(latency));
 				c.setProcLatency(Double.valueOf(processlat));
 				updateComponentThread(id, boltid, topologies, ini, emitted, false);
-				System.out.println("bolt "+boltid+" finished update");
+				
 			}
 			else{
-				System.out.println("component not contains "+boltid);
 				long thread = updateComponentThread(id, boltid, topologies, ini, 0, false);
-				System.out.println("thread for "+boltid +" is "+thread);
 				compos.put(boltid, thread);
 				needreorder = true;
-				System.out.println("bolt "+boltid+" finished ini");
 			}
 		}
 		if (needreorder) {
-			System.out.println("iniitlai need ordering");
 			Map<String, Long> bolts = orderCompos(compos);
 			topologies.get(id).setBolts(bolts);
 		}
@@ -916,15 +906,12 @@ public class StormREST {
 					} else {
 						systemperform = (JSONArray) jobj.get("spoutSummary");
 					}
-					System.out.println("ini is false and start to collect bolt executor states");
 					JSONArray temp = (JSONArray) jobj.get("executorStats");
-					System.out.println("collect exuecutor states and ready to enter updatecompentsys");
 					updateComponentsys(tid, cid, systemperform, topologies, spout);
 					ArrayList<Executor> exe=new ArrayList<Executor>();
 					ArrayList<Executor> check = new ArrayList<Executor>();
 
 					if (topologies.get(tid).getCompo().containsKey(cid)){
-						System.out.println("insdie updatecomponethread , contains "+cid);
 						if(topologies.get(tid).getCompo().get(cid).getExecutors().size() > 0) {
 							exe = topologies.get(tid).getCompo().get(cid).getExecutors();
 							// for checking if an executor has been removed
@@ -932,7 +919,6 @@ public class StormREST {
 							ctmap = topologies.get(tid).getCompo().get(cid).getThreads();
 						} 
 					}else {
-						System.out.println("insdie updatecomponethread , not contains "+cid);
 						
 						ctmap = new HashMap<String, ComponentThread>();
 					}
