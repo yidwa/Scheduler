@@ -128,7 +128,7 @@ public class QueueUpdate implements Runnable {
 /**
  * update the waiting time for each queue
  */
-		public void performanceMetric(){
+		public void queueMetric(){
 		
 			LinkedList<Double> temparr = new LinkedList<>();
 			LinkedList<Double> tempserv = new LinkedList<>();
@@ -144,6 +144,7 @@ public class QueueUpdate implements Runnable {
 					updateLatency(pq, p.getPrioirty(), temparr, tempserv);
 				
 					System.out.println("before optimizaiton ");
+					// the existing scheduling host
 					System.out.println(p.getHosts().toString());
 					ArrayList<String> queuemapping = QoS_Opt.optimizedSolution(p, topologies);
 					System.out.println("after optmization ");
@@ -187,7 +188,7 @@ public class QueueUpdate implements Runnable {
 				mappresult += i+" "+mappingsize.get(i)+" ("+mappingupdate.get(i)+")"+" "+mappingresult.get(i).toString()+"\n";
 			}
 //			System.out.println("mapping result "+mappresult);
-			Methods.writeFile(mappresult, "schedule",false);
+			Methods.writeFile(mappresult, "qos_schedule",false);
 			Methods.writeFile(mappresult, "history", true);
 			String sen = "";
 			for(PriorityQueue p : pq){
@@ -206,7 +207,7 @@ public class QueueUpdate implements Runnable {
 				}
 				sen+="\n";
 			}
-			Methods.writeFile(sen, "metrics.txt",true);
+			Methods.writeFile(sen, "queue_metrics.txt",true);
 //			    System.out.println("set metrics "+ thr+ " , "+ lat);
 //			    System.out.println("metric of "+s+" , "+metrics.get(s).latency+" , "+metrics.get(s).throughput);
 		}
@@ -242,7 +243,8 @@ public class QueueUpdate implements Runnable {
 //		System.out.println("no metric update ");
 //		// TODO Auto-generated method stub
 		System.out.println("new Queueupdate starts");
-		performanceMetric();
+		System.out.println();
+		queueMetric();
 	}
 	
 	

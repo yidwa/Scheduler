@@ -133,9 +133,9 @@ public class MetricUpdate implements Runnable {
 				mappresult += "\n";
 			}
 	        
-			Methods.writeFile(mappresult, "schedule",false);
+			Methods.writeFile(mappresult, "model_schedule",false);
 			//	System.out.println("usage in metric update "+Optimisation.cpuscheduelr(topologies, priority).toString());
-			Methods.writeFile(sen, "metrics.txt",true);
+			Methods.writeFile(sen, "topology_metrics.txt",true);
 //			    System.out.println("set metrics "+ thr+ " , "+ lat);
 //			    System.out.println("metric of "+s+" , "+metrics.get(s).latency+" , "+metrics.get(s).throughput);
 		}
@@ -150,6 +150,7 @@ public class MetricUpdate implements Runnable {
 //		System.out.println("no metric update ");
 //		// TODO Auto-generated method stub
 		System.out.println("new Metricupdate starts");
+		System.out.println();
 		performanceMetric();
 	}
 	

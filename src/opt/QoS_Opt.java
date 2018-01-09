@@ -21,7 +21,9 @@ public class QoS_Opt {
 	// twitter 50 ms , line 15 ms, diamond 20s, star 18ms
 	
 	
-	
+	/**
+	 * initialize parameters
+	 */
 	public QoS_Opt() {
 		// TODO Auto-generated constructor stub
 		QoS_Opt.lowLat = 55.0;
@@ -110,6 +112,8 @@ public class QoS_Opt {
 		return Double.valueOf(Methods.formatter.format(ipu*(removingcost+addingcost)));
 	}
 	
+	
+
 	public static double cpuCost(ArrayList<String> hosts){
 		int result = 0;
 		result = getCpu(hosts);
@@ -153,10 +157,16 @@ public class QoS_Opt {
 		return result;
 	}
 	
+	/**
+	 * return the option with least cost by iterating all options
+	 * @param pq
+	 * @param topologies
+	 * @return
+	 */
 	public static ArrayList<String> optimizedSolution(PriorityQueue pq, HashMap<String, Topology> topologies){
 		System.out.println("optimized solution for queue "+pq.getPrioirty());
 		ArrayList<String> result = new ArrayList<>();
-		ArrayList<ArrayList<String>> list = possibleHost(pq.getPrioirty());
+		ArrayList<ArrayList<String>> list = possibleHostL(pq.getPrioirty());
 		double cost = Double.MAX_VALUE;
 		for (ArrayList<String> option : list){
 			double tempcost = costE(pq, option, topologies);
@@ -169,6 +179,9 @@ public class QoS_Opt {
 		return result;
 	}
 	
+	/*
+	 * calculate the cost for qos violation, in respect to priority 
+	 */
 	public static double qosQueuecost(PriorityQueue pq, HashMap<String, Topology> topologies, int size){
 		double result = 0;
 		//punishment for each topology
@@ -197,8 +210,14 @@ public class QoS_Opt {
 		return Double.valueOf(Methods.formatter.format(result));
 	}
 	
-	
-	public static ArrayList<ArrayList<String>> possibleHost(int pri){
+	/**
+	 * update the list for queue with label as priority
+	 * different options(for instance, p =1 , including s1, m1, l1, (s1,m1), (s1,l1), (m1,l1), (s1,m1,l1) 
+	 * @param pri
+	 * @return
+	 */
+
+	public static ArrayList<ArrayList<String>> possibleHostL(int pri){
 		ArrayList<ArrayList<String>> list = new ArrayList<ArrayList<String>>();
 		String s = "s"+String.valueOf(pri);
 		String m = "m"+String.valueOf(pri);

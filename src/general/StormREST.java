@@ -494,7 +494,7 @@ public class StormREST {
 				// topology and update later
 				else {
 //					topologies.remove(tid);
-					System.out.println("the topology "+tid+" is not exist");
+					System.out.println("the topology "+tid+" is not initialized yet");
 				}
 			}
 		} catch (IOException e) {
@@ -857,7 +857,7 @@ public class StormREST {
 //						result = Double.valueOf(Methods.formatter.format(1000 / Double.valueOf(sumlatency)));
 					}
 					buffer.put(id,completelat-sumlatency);
-					System.out.println("the complete latency is "+completelat+" , the sum latency is "+sumlatency+" , the buffer time is "+(completelat-sumlatency));
+					System.out.println("the complete latency is "+completelat+" , the execute latency is "+sumlatency+" , the buffer time is "+(completelat-sumlatency));
 					sumlatency = 0;
 //					obj = temp.get(0);
 //					jobj = (JSONObject) obj;

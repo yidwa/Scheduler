@@ -83,10 +83,10 @@ public class dataretrival implements Runnable {
 				if(c.spout == true)
 					spoutname = c.cid;
 			}
-			
+			// arrv is the time interval to emit a data tuple
 			arrv = sr.freqInfo(t.tid, spoutname, topologies);
 			//testing purpose
-			System.out.println("now the emit rate for "+t.tname+" is "+arrv);
+			System.out.println("now the emit rate for "+t.tname+" is "+arrv+ "which is the time interval to emit a data tuple");
 			// reserve for the model-based scheduling
 //			serv = sr.serviceRate(t.tid,topologies);
 			// this is for the execution for priority based scheduling

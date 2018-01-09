@@ -50,20 +50,21 @@ public class CentralControl {
 			Thread.sleep(20*1000);
 			// for cpu scheduler	
 			//for topology based scheduling
-//			MetricUpdate mu = new MetricUpdate(sc.sr, cc.topologies, priority);
-//			for(String s: cc.topologies.keySet()){
-//				if(cc.arr.containsKey(s)){
-//					ArrayList<Double> arrtemp = new ArrayList<Double>(cc.arr.get(s));
-//					ArrayList<Double> servtemp = new ArrayList<Double>(cc.ser.get(s));
-//					mu.updateLatency(s, arrtemp, servtemp, cc.topologies.get(s).workers);	
-//			
-//					}	
-//				else{
-//						System.out.println("the "+s+" is not included in the current records");
-//					}
-//				}
-//			scheduledPoolmetric.schedule(mu, 0, TimeUnit.SECONDS);
-//			
+			MetricUpdate mu = new MetricUpdate(sc.sr, cc.topologies, priority);
+			for(String s: cc.topologies.keySet()){
+				if(cc.arr.containsKey(s)){
+					ArrayList<Double> arrtemp = new ArrayList<Double>(cc.arr.get(s));
+					ArrayList<Double> servtemp = new ArrayList<Double>(cc.ser.get(s));
+					mu.updateLatency(s, arrtemp, servtemp, cc.topologies.get(s).workers);	
+					System.out.println("metric update for  "+s+" with arr "+arrtemp.get(arrtemp.size()-1)+" , serv "+servtemp.get(servtemp.size()-1));
+					}	
+				else{
+						System.out.println("the "+s+" is not included in the current records");
+					}
+				}
+			scheduledPoolmetric.schedule(mu, 0, TimeUnit.SECONDS);
+			Thread.sleep(20*1000);
+			
 //			for QoS scheduling		
 			QueueUpdate qu = new QueueUpdate(sc.sr, cc.topologies, priority, cc.queues,cc.arr, cc.ser);
 			for(PriorityQueue pq : cc.queues){
