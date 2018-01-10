@@ -852,12 +852,14 @@ public class StormREST {
 						sumlatency += Double.valueOf(templatencyupdate);
 //						System.out.println("inside execution total time in dataretvial for templatencyupdate "+ templatencyupdate);
 //					
-						//update the service time in ms
-						result = Double.valueOf(sumlatency);
+						
 //						result = Double.valueOf(Methods.formatter.format(1000 / Double.valueOf(sumlatency)));
 					}
+					//update the service time in ms
+//					result = Double.valueOf(sumlatency);
+					result = sumlatency;
 					buffer.put(id,completelat-sumlatency);
-					System.out.println("the complete latency is "+completelat+" , the execute latency is "+sumlatency+" , the buffer time is "+(completelat-sumlatency));
+					System.out.println("the complete latency is "+completelat+" , the execute latency is "+Methods.formatter.format(sumlatency)+" , the buffer time is "+(completelat-sumlatency));
 					sumlatency = 0;
 //					obj = temp.get(0);
 //					jobj = (JSONObject) obj;
@@ -871,6 +873,7 @@ public class StormREST {
 				e.printStackTrace();
 			}
 			conn.disconnect();
+			
 			return result;
 		}
 	

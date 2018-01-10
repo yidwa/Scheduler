@@ -86,14 +86,14 @@ public class dataretrival implements Runnable {
 			// arrv is the time interval to emit a data tuple
 			arrv = sr.freqInfo(t.tid, spoutname, topologies);
 			//testing purpose
-			System.out.println("now the emit rate for "+t.tname+" is "+arrv+ "which is the time interval to emit a data tuple");
+			System.out.println("now the emit rate for "+t.tname+" is "+arrv);
 			// reserve for the model-based scheduling
 //			serv = sr.serviceRate(t.tid,topologies);
 			// this is for the execution for priority based scheduling
 			int pri = priority.get(t.tid);
 //			System.out.println("inside update ratese in dataretvieal and the priority is "+pri);
 			serv = sr.executionTotaltime(t.tid, topologies, queues.get(pri-1));
-			System.out.println("get "+t.tid+ " arrv is "+arrv+" , serv "+serv);
+			System.out.println("get "+t.tid+ " arrv is "+arrv+" ms/tuple, serv "+serv+" , ms/tuple");
 			//update the traffic monitor for queues
 			
 			ArrayList<Double> temp = queuearr.get(pri-1);

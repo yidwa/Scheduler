@@ -153,7 +153,7 @@ public class QoS_Opt {
 		double cpucost = cpuCost(prohost);
 		double qoscost = qosQueuecost(pq, topologies, prohost.size());
 		result =  switchcost + cpucost + qoscost;
-//		System.out.println("schedule "+prohost.toString()+" switch cost  "+switchcost+" , cpu cost "+cpucost+" , qos cost "+qoscost);
+//		System.out.println("now  "+host+" , proposed schedule "+prohost.toString()+" total cost  is "+(switchcost+cpucost+qoscost));
 		return result;
 	}
 	
@@ -185,8 +185,18 @@ public class QoS_Opt {
 	public static double qosQueuecost(PriorityQueue pq, HashMap<String, Topology> topologies, int size){
 		double result = 0;
 		//punishment for each topology
-		int costpertopology = 10;
+		int costpertopology;
+		
+		if (pq.getPrioirty()==1 )
+			costpertopology = 10;
+		else if (pq.getPrioirty() ==2)
+			costpertopology = 6;
+		else
+			costpertopology = 4;
+		
 		ArrayList<String> tname = pq.getNames();
+		double wait = pq.getQl().waittimeEstimating(size);
+//		System.out.println("wait time now for queue "+pq.getPrioirty()+ " is "+wait);
 		//loop for all the topology that calculate the exectuion time of all components
 		for(String s : tname){
 			double totalexel = 0;
@@ -194,18 +204,11 @@ public class QoS_Opt {
 			for(Component c : t.getCompo().values()){
 				totalexel += c.getExeLatency();
 			}
-//			System.out.println("total execute latency for "+s+ " is "+totalexel);
-			double wait = pq.getQl().waittimeEstimating(size);
-			System.out.println("wait time now is "+wait);
-		
 			double lat = totalexel + pq.getAvgbuf() + wait ;
-			System.out.println("latency is "+lat);
-		//			System.out.println("waiting time estimation is "+ pq.getQl().waittimeEstimating(size));
-		//			System.out.println("total latency for queue "+pq.getPrioirty()+" is "+lat);
-		//			System.out.println("queue latency cost is "+qosCost(lat, pq.getPrioirty()));
 			result += costpertopology * qosCost(lat, pq.getPrioirty());
-		
 		}
+			
+
 		result = result * rho;
 		return Double.valueOf(Methods.formatter.format(result));
 	}

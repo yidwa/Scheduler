@@ -47,7 +47,7 @@ public class QueueLatency {
 	public double waittimeEstimating(int numchannel){
 		uti = getUti();
 //		System.out.println("uti for queue "+priority+" , "+uti);
-		double pm = waitProb();
+//		double pm = waitProb();
 //		System.out.println("wait pro  "+priority+" , "+pm);
 //		double t1 = 0;
 		double result_b = 0.0;
@@ -70,7 +70,7 @@ public class QueueLatency {
 //	    result += getExeLatency();
 //	    result = Double.valueOf(formatter.format(result));
 	    result_b = Double.valueOf(Methods.formatter.format(result_b));
-//	    System.out.println("inside waiting time estimation : result_B"+ result_b);
+//	    System.out.println("inside waiting time estimation : "+ result_b);
 		}
 		if(result_b<0){
 			System.out.println("the number needs to increase");
@@ -111,11 +111,11 @@ public class QueueLatency {
 		if(meanarrv == 0)
 			 d = 0;
 		else
-			 d = 1/meanarrv;
+			 d = 1.0/meanarrv;
 //		System.out.println("inside getuti "+d);
 		Double d1  =  Double.valueOf(Methods.formatter.format(d));
 		Double d2 =  Double.valueOf(Methods.formatter.format(numChannel*(1.0/meanserv)));
-//		System.out.println("inside get uti "+d1+ " , d2 "+d2);
+//		System.out.println("inside get uti, arrival rate  "+d1+ "service rate "+Methods.formatter.format(1.0/meanserv)+" , number of channle "+numChannel);
 		return Double.valueOf(Methods.formatter.format(d1/d2));
 //		return meanarrv/(numChannel*meanserv);
 	}

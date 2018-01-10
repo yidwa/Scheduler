@@ -134,7 +134,7 @@ public class QueueUpdate implements Runnable {
 			LinkedList<Double> tempserv = new LinkedList<>();
 		
 			for(PriorityQueue p : pq){
-				System.out.println("queue for "+ p.getPrioirty()+" ,size is "+p.getSize());
+				System.out.println("queue for "+ p.getPrioirty()+" ,"+p.getHosts());
 				
 				temparr = p.getArr();
 				tempserv = p.getServ();
@@ -143,12 +143,11 @@ public class QueueUpdate implements Runnable {
 				if(p.getSize()>0){
 					updateLatency(pq, p.getPrioirty(), temparr, tempserv);
 				
-					System.out.println("before optimizaiton ");
 					// the existing scheduling host
-					System.out.println(p.getHosts().toString());
+//					System.out.println(p.getHosts().toString());
 					ArrayList<String> queuemapping = QoS_Opt.optimizedSolution(p, topologies);
-					System.out.println("after optmization ");
-					System.out.println(queuemapping.toString());
+					
+					System.out.println("the derived scheduling decision "+queuemapping.toString());
 					// mapping changed 
 					if(!compareArrays(p.getHosts(), queuemapping)){
 						System.out.println("mapping changed for queue "+p.getPrioirty());
@@ -201,7 +200,7 @@ public class QueueUpdate implements Runnable {
 						double emit = t.getSystememit();
 						long fail = t.getFailed();
 						double lat = t.getSystemlatency();
-						sen += s+","+emit+","+lat+","+fail;
+						sen += s+";"+emit+";"+lat+";"+fail;
 					}
 					sen+=",";
 				}
