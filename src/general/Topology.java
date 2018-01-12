@@ -23,8 +23,12 @@ public class Topology {
 	Long workers;
 	int layer;
 	Map<String, Long> bolts;
+	// latest emit amount
 	double systememit;
+	// entire latency over the execution
 	double systemlatency;
+	// latency latency
+	double systemlatencylatest;
 	String failrate;
 	long failed;
 	
@@ -110,6 +114,18 @@ public class Topology {
 //	public void setSystemcoemit(HashMap<String, Long> systemcoemit) {
 //		this.systemcoemit = systemcoemit;
 //	}
+
+
+
+	public double getSystemlatencylatest() {
+		return systemlatencylatest;
+	}
+
+
+
+	public void setSystemlatencylatest(double systemlatencylatest) {
+		this.systemlatencylatest = systemlatencylatest;
+	}
 
 
 

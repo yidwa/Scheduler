@@ -31,6 +31,8 @@ public class Component {
 	public long lasttrans;
 	// the last observation of amount processed
 	public long lastproc;
+	public long lastemit;
+	public long lastack;
 	// ! need to check if it's still needed
 	public long execute;
 	//  the list of service rate for 10 records
@@ -60,6 +62,8 @@ public class Component {
 		this.threads = new HashMap<String, ComponentThread>();
 		this.lastproc = 0;
 		this.lasttrans = 0;
+		this.lastemit = 0;
+		this.lastack = 0;
 		this.executors = new ArrayList<Executor>();
 		this.ServicePt = new ArrayList<Double>();
 		this.ArrivalPt = new ArrayList<Double>();
@@ -214,15 +218,54 @@ public class Component {
 	
 	
 
+	public long getLastemit() {
+		return lastemit;
+	}
+
+
+	public void setLastemit(long lastemit) {
+		this.lastemit = lastemit;
+	}
+
+
+	public long getLastack() {
+		return lastack;
+	}
+
+
+	public void setLastack(long lastack) {
+		this.lastack = lastack;
+	}
+
+
 	public long getLasttrans() {
 		return lasttrans;
 	}
 
-	public void setLast(long lastproc, long lasttrans) {
+	/**
+	 * for spout
+	 * @param lastproc
+	 * @param lasttrans
+	 * @param lastack
+	 */
+	public void setLast(long lastemit, long lasttrans, long lastack) {
+		this.lastemit = lastemit;
 		this.lasttrans = lasttrans;
-		this.lastproc = lastproc;
+		this.lastack = lastack;
 	}
 
+	/**
+	 * for bolt
+	 * @param lastproc
+	 * @param lasttrans
+	 */
+	public void setLast(long lastemit, long lasttrans) {
+		this.lastemit = lastemit;
+		this.lasttrans = lasttrans;
+		
+//		this.lastproc = lastproc;
+	}
+	
 	public long getLastproc() {
 		return lastproc;
 	}

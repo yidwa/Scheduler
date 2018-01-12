@@ -12,7 +12,9 @@ public class Throughput {
 //	public ArrayList<String> name;
 	public String shape;
 	public ArrayList<Integer> througput;
+	//structured components in layers
 	public ArrayList<ArrayList<String>> compostruc;
+	//collection of all components
 	public HashMap<String,Component> compo;
 //	public HashMap<String,Component> list;
 	public double inputrate;
@@ -24,8 +26,7 @@ public class Throughput {
 	public HashMap<String, ArrayList<String>> compoports;
 	public String tid;
 	public Long output; 
-//	public Throughput(ArrayList<String> name, String shape, ArrayList<Integer> thread, int rate){
-//		this.t = new Topology(name,shape,thread);
+
 	public Throughput(String tname, ArrayList<ArrayList<String>> compostruc, HashMap<String,Component> compo){
 		this.compo = compo;
 		this.tid = tname;
@@ -64,23 +65,22 @@ public class Throughput {
 
 	public long getOutput(){
 		long temp = 0;
-		ArrayList<Component> outputlayer = new ArrayList<>();
 		for(String cid : compostruc.get(layer-1)){
 			temp += Long.valueOf(compo.get(cid).getValuealltime().get("acked"));
 		}
 		return temp;
 	}
-	// calculate the total throghput, based on lastest observation values
+	// calculate the total throughput, based on latest observation values
 	// every time calculate the throughput, threads and values of each component will be update first
 	// adding the latency 
 	public long totalThroughput(){
 		long l = 0;
 		double processed;
 		double input = inputrate;
+		System.out.println("input is "+input);
 		long output = 0;
-//		double latency = 0;
+		
 		Component c;
-//		for(int i =0; i<layer; i++){
 		for(int i =1; i<layer; i++){
 			int temp = compostruc.get(i).size();
 			for(int j = 0; j<compostruc.get(i).size(); j++){
@@ -111,7 +111,29 @@ public class Throughput {
 //		System.out.println("totalthorughput final result is "+l);
 		return l;
 	}
-	public long Throughput(){
+	
+	public double throughputRatio(){
+		double input = 0;
+		double output = 0;	
+		Component c;
+		System.out.println("size of compostruc "+compostruc.size());
+		for(int i  = 0; i<compostruc.get(0).size(); i++){
+			String value = compostruc.get(0).get(i);
+			c = compo.get(value);
+			String s = c.cid;
+			input += compo.get(s).getLastemit();
+			output += compo.get(s).getLastack();
+		}
+		System.out.println("inside thorughput ratio, input is "+input+ " , outoput is "+output);
+		if(input == 0)
+			return 0;
+		else if(input<output)
+		    return output*1.0/input;
+		else
+			return 1;
+	}
+	
+	public long tThroughput(){
 		long l = 0;
 		double processed;
 		double input = inputrate;

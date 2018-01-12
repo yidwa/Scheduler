@@ -430,6 +430,8 @@ public class StormREST {
 		JSONArray tooo = null;
 		String spoutid = "";
 		long emit = 0;
+		double throughputRate = 0;
+		Long lastemit = (long) 0 ;
 		try {
 			while ((output = br.readLine()) != null) {
 				JSONParser parser = new JSONParser();
@@ -448,9 +450,15 @@ public class StormREST {
 					long thread = (Long) jobj.get("executors");
 					
 					if(topologies.get(tid).getCompo().size()>0 && topologies.get(tid).getCompo().containsKey(spoutid)){
-						Long lastemit = (Long) jobj.get("emitted");
+						lastemit = (Long) jobj.get("emitted");
 						Long lasttrans = (Long) jobj.get("transferred");
-						topologies.get(tid).getCompo().get(spoutid).setLast(lastemit, lasttrans);
+						Long lastack = (Long) jobj.get("acked");
+						double temp  = lastack*1.0/lastemit;
+						if(temp <1)
+							throughputRate = temp;
+						else
+							throughputRate = 1;
+						topologies.get(tid).getCompo().get(spoutid).setLast(lastemit, lasttrans, lastack);
 						emit = lastemit;
 						
 					}
@@ -485,7 +493,7 @@ public class StormREST {
 //					}
 					updateComponentThread(tid, spoutid, topologies, ini, emit, true);
 					topologyBoltInitial(tid, ini, topologies, tooo);
-					updateTopolgoyStats(tid, stats, topologies);
+					updateTopolgoyStats(tid, stats, topologies, lastemit, throughputRate);
 					if (ini == true){
 						topologies.get(tid).initopology();
 					}
@@ -513,40 +521,29 @@ public class StormREST {
 	 * @param stats
 	 * @param topologies
 	 */
-	public void updateTopolgoyStats(String tid, JSONArray stats, HashMap<String, Topology> topologies) {
-//		long emitall = 0;
-		long emitlatest = 0;
+	public void updateTopolgoyStats(String tid, JSONArray stats, HashMap<String, Topology> topologies, long emit, double throughputRate) {
+//	
 		String latencyall = "";
-//		String latencylatest = "";
-		long ackall = 0;
-//		long acklatest = 0;
-//		long failall = 0;
-//		long faillatest = 0;
+		String latencylatest = "";
 		
 		for (int i = 0; i < stats.size(); i++) {
 			Object obj = stats.get(i);
 			JSONObject jobj = (JSONObject) obj;
 			String timeframe = (String) jobj.get("window");
 			if(timeframe.contains("all-time")){
-//				emitall = (Long)jobj.get("emitted");
 				latencyall = (String)jobj.get("completeLatency");
-				ackall = (Long) jobj.get("acked");
-//				if(jobj.get("failed")!= null)
-//					failall = (Long) jobj.get("failed");
 				}
 				else if(timeframe.equals("600")){
-					emitlatest = (Long)jobj.get("emitted");
-//					latencylatest = (String)jobj.get("completeLatency");
-//					acklatest = (Long) jobj.get("acked");
-//					if(jobj.get("failed")!= null)
-//						faillatest = (Long) jobj.get("failed");
+					latencylatest = (String)jobj.get("completeLatency");
 				}
 		}
 		Topology t = topologies.get(tid);
-		t.setSystememit(emitlatest / 600.0);
+		t.setSystememit(emit);
 		t.setSystemlatency(Double.valueOf(latencyall));
-		double rate = (t.getFailed() * 1.0) / (ackall + t.getFailed());
-		t.setFailrate(Methods.formatter.format(rate));
+		t.setSystemlatencylatest(Double.valueOf(latencylatest));
+		double rate = Double.valueOf(Methods.formatter.format(throughputRate));
+		t.setFailrate(Methods.formatter.format(1-rate));
+	
 	}
 
 	/**
@@ -606,6 +603,7 @@ public class StormREST {
 			}
 			else{
 				long thread = updateComponentThread(id, boltid, topologies, ini, 0, false);
+//				Component c = new Component(boltid, thread);
 				compos.put(boltid, thread);
 				needreorder = true;
 			}
@@ -859,7 +857,7 @@ public class StormREST {
 //					result = Double.valueOf(sumlatency);
 					result = sumlatency;
 					buffer.put(id,completelat-sumlatency);
-					System.out.println("the complete latency is "+completelat+" , the execute latency is "+Methods.formatter.format(sumlatency)+" , the buffer time is "+(completelat-sumlatency));
+//					System.out.println("the complete latency is "+completelat+" , the execute latency is "+Methods.formatter.format(sumlatency)+" , the buffer time is "+(completelat-sumlatency));
 					sumlatency = 0;
 //					obj = temp.get(0);
 //					jobj = (JSONObject) obj;
@@ -883,7 +881,7 @@ public class StormREST {
 	 * @param cid
 	 * @param topologies
 	 * @param ini
-	 * @param emitted
+	 * @param emitted, emitted from last component
 	 * @param spout
 	 * @return the number of thread for the given component
 	 */
@@ -953,6 +951,8 @@ public class StormREST {
 							}
 							ct.updateThread(execute, Double.valueOf(executelatency), Double.valueOf(processlatency),
 									ack, e);
+//							System.out.println("update for bolt thread with ");
+//							System.out.println(e.toString()+" , execute "+execute+ " , executelatency "+executelatency+" ack "+ack);
 						} else {
 							Long transfer = (Long) jobj.get("transferred");
 							String processlatency = (String) jobj.get("completeLatency");
@@ -964,9 +964,13 @@ public class StormREST {
 								ctmap.put(ctid, ct);
 							}
 							ct.updateThread(transfer, Double.valueOf(processlatency), 0.0, ack, e);
+//							System.out.println("update for spout thread with ");
+//							System.out.println(e.toString()+" , transfer "+transfer+ " , executelatency "+processlatency+" ack "+ack);
 						}
 						ct.setCompoemit(emitted);
-						if (emitted != 0) {
+//						System.out.println("setting emit rates as "+emitted);
+						// spout does not need the porb
+						if (spout == false && emitted != 0) {
 							ct.setProb(ack * 1.0 / emitted);
 						}
 						topologies.get(tid).getCschedule().put(ctid, host);
@@ -1041,7 +1045,7 @@ public class StormREST {
 		if(topologies.get(tid).getCompo().containsKey(cid))
 			topologies.get(tid).getCompo().get(cid).setValuealltime(valuealltime);
 		topologies.get(tid).getSystemcolatency().put(cid, Double.valueOf(cl));
-
+		
 	}
 
 	/**

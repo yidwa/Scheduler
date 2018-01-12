@@ -40,6 +40,7 @@ public class MetricUpdate implements Runnable {
 		this.metrics = new HashMap<String, Metrics>();
 		
 		for(Topology t: topologies.values()){
+			System.out.println("inside constructor, tid is "+t.getTid()+" . size is  "+t.getCompo().size());
 			Throughput thr = new Throughput(t.getTid(), t.getCompostruct(), t.getCompo());
 			Latency lc = new Latency(t.getTid(), t.getCompostruct(),t.getCompo(), new ArrayList<Double>(), new ArrayList<Double>(), t.getTworker().size());
 			
@@ -66,25 +67,32 @@ public class MetricUpdate implements Runnable {
  * ???
  */
 		public void performanceMetric(){
+			System.out.println("performance metric ready");
+			
 			long thr;
 			double lat;
+			double thrrat;
 			String sen = "";
 			for(String s: topologies.keySet()){
-//				System.out.println("perofrmance  metric s "+s);
-				thr = throughput.get(s).totalThroughput();
-//				System.out.println("througput in performance metric "+thr);
+				
+				// reserved for the model-based scheduler
+//				thr = throughput.get(s).totalThroughput();
+				
+				
+				thrrat = throughput.get(s).throughputRatio();
+				System.out.println("thrarat is "+ thrrat);
 				//add the spouting tuples
-				thr += throughput.get(s).getInputrate();
+//				thr += throughput.get(s).getInputrate();
 //				System.out.println("throughput after adding input rate "+thr);
 				lat = latency.get(s).totallatency();
 //				System.out.println("perofmrance update "+s+" , "+thr +" , "+lat);
 				Metrics m = metrics.get(s);
-			    m.setMetrics(thr, lat);
+//			    m.setMetrics(thr, lat);
 //			    sen += s+" model  , + thr "+thr+" , lat "+lat+"\n";
 			    String output = String.valueOf(throughput.get(s).getOutput());
-			    Long l = throughput.get(s).Throughput();
+			    Long l = throughput.get(s).tThroughput();
 //			    System.out.println("output is "+output);
-			    sen += s+" model  , + thr "+thr+" ,  output "+ l +" , "+lat+"\n";
+//			    sen += s+" model  , + thr "+thr+" ,  output "+ l +" , "+lat+"\n";
 			    sen += "system states "+ topologies.get(s).getSystememit()+" , "+ l +" , "+topologies.get(s).getSystemlatency()+"\n";
 			    for(String cid : topologies.get(s).getCompo().keySet()){
 			    	Component c = topologies.get(s).getCompo().get(cid);

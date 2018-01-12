@@ -7,6 +7,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.hadoop.hbase.util.Threads;
+import org.apache.storm.starter.ThroughputVsLatency.C;
 
 import model.MetricUpdate;
 //import model.MetricUpdate;
@@ -48,35 +49,47 @@ public class CentralControl {
 			dataretrival dt = new dataretrival(cc.topologies, getPriority(), cc.arr, cc.ser,sc.sr, cc.queues);
 			scheduledPooldata.schedule(dt, 5, TimeUnit.SECONDS);
 			Thread.sleep(20*1000);
+			
+			
+//			for QoS scheduling		
+//			QueueUpdate qu = new QueueUpdate(sc.sr, cc.topologies, priority, cc.queues,cc.arr, cc.ser);
+//			for(PriorityQueue pq : cc.queues){
+//			   if(pq.size>0){
+////				   System.out.println("");
+//				   qu.updateLatency(cc.queues, pq.getPrioirty(), pq.getArr(), pq.getServ() );
+//			   	}
+//			   }
+//			
+//			scheduledPoolmetric.schedule(qu, 0, TimeUnit.SECONDS);
+//			
+//			Thread.sleep(waitime*1000);
+			
+			
+//			System.out.println("topology size now is "+cc.topologies.size());
+//			for(String s:cc.topologies.keySet()){
+//				System.out.println("topology "+ s+" , contains compoennt ");
+//				for(String cid : cc.topologies.get(s).getCompo().keySet()){
+//					System.out.println(cid+" , ");
+//					System.out.println("with ack "+ cc.topologies.get(s).getCompo().get(cid).getLastack()+" , and emit "+ cc.topologies.get(s).getCompo().get(cid).getLastemit());
+//				}
+//			}
 			// for cpu scheduler	
-			//for topology based scheduling
+						//for topology based scheduling
 			MetricUpdate mu = new MetricUpdate(sc.sr, cc.topologies, priority);
 			for(String s: cc.topologies.keySet()){
 				if(cc.arr.containsKey(s)){
 					ArrayList<Double> arrtemp = new ArrayList<Double>(cc.arr.get(s));
 					ArrayList<Double> servtemp = new ArrayList<Double>(cc.ser.get(s));
 					mu.updateLatency(s, arrtemp, servtemp, cc.topologies.get(s).workers);	
+					
 					System.out.println("metric update for  "+s+" with arr "+arrtemp.get(arrtemp.size()-1)+" , serv "+servtemp.get(servtemp.size()-1));
-					}	
+				}	
 				else{
-						System.out.println("the "+s+" is not included in the current records");
-					}
+					System.out.println("the "+s+" is not included in the current records");
 				}
+			}
 			scheduledPoolmetric.schedule(mu, 0, TimeUnit.SECONDS);
 			Thread.sleep(20*1000);
-			
-//			for QoS scheduling		
-			QueueUpdate qu = new QueueUpdate(sc.sr, cc.topologies, priority, cc.queues,cc.arr, cc.ser);
-			for(PriorityQueue pq : cc.queues){
-			   if(pq.size>0){
-//				   System.out.println("");
-				   qu.updateLatency(cc.queues, pq.getPrioirty(), pq.getArr(), pq.getServ() );
-			   	}
-			   }
-			
-			scheduledPoolmetric.schedule(qu, 0, TimeUnit.SECONDS);
-			
-			Thread.sleep(waitime*1000);
 			
 		}
 			
