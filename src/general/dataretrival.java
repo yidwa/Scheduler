@@ -130,7 +130,7 @@ public class dataretrival implements Runnable {
 //			System.out.println("the arrival rate now is "+arr.toString());
 //			System.out.println("the service rate now is "+ser.toString());
 		}
-		System.out.println("update has been done for all topologies");
+		System.out.println("update has been done for all topologies in data retriveal");
 		// the update has been done for all topologies
 	
 		

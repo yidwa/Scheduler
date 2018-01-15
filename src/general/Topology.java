@@ -179,14 +179,13 @@ public class Topology {
 		// layered components
 		ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
 		int count = names.size();
-//		int pointindex = 0;
+		System.out.println("inside topology init with component "+count);
 		// the first layer of the components
 		ArrayList<String> flayer = new ArrayList<String>();
 		//add the spout id to the compo
 		flayer.add(names.get(0));
-//		Component starting = new Component(names.get(pointindex), tthread.get.get(pointindex), true);
-//		flayer.add(starting);
-//		com.add(flayer);
+		System.out.println("add "+names.get(0)+ " as the spout");
+
 		result.add(flayer);
 		count--;
 		// update shape.equals("diamond") to shape.contains("diamond")

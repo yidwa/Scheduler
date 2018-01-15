@@ -261,7 +261,7 @@ public class StormREST {
 							ArrayList<String> n = tempqueue.getNames();
 							n.add(id);
 							tempqueue.setNames(n);
-							topologyini = true;
+						
 							sen+= " now the priority queues for priority "+pri +" is ";
 							for(String s: StormCluster.queue.get(pri-1).getNames()){
 								sen += s+ " , ";
@@ -494,9 +494,10 @@ public class StormREST {
 					updateComponentThread(tid, spoutid, topologies, ini, emit, true);
 					topologyBoltInitial(tid, ini, topologies, tooo);
 					updateTopolgoyStats(tid, stats, topologies, lastemit, throughputRate);
-					if (ini == true){
-						topologies.get(tid).initopology();
-					}
+//					if (ini == true){
+//						System.out.println("ini is true, call initopology");
+//						topologies.get(tid).initopology();
+//					}
 				}
 				// if the component are not initialized yet, just remove the
 				// topology and update later
@@ -544,6 +545,11 @@ public class StormREST {
 		double rate = Double.valueOf(Methods.formatter.format(throughputRate));
 		t.setFailrate(Methods.formatter.format(1-rate));
 	
+		if(t.getCompostruct().size()<1){
+//			System.out.println("the constuct of "+t.tid+ " is not initialized yet");
+			t.initopology();
+		}
+//		System.out.println("now the const size is "+t.getCompostruct().size());
 	}
 
 	/**

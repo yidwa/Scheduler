@@ -1,13 +1,8 @@
 package model;
 
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
-
-import javax.xml.crypto.Data;
-
 import general.Component;
-import general.Methods;
 
 public class Latency {
 //		public Long TimeUnit;
@@ -31,6 +26,7 @@ public class Latency {
 //		public HashMap<String,Long> compolasttran;
 		public HashMap<String, ArrayList<String>> compoports;
 		public String tid;
+		public double latestlatency;
 		
 		public Latency(String tname, ArrayList<ArrayList<String>> compostruc, HashMap<String,Component> compo, ArrayList<Double> arr, ArrayList<Double> serv, long numserver){
 			this.tname = tname;
@@ -40,6 +36,7 @@ public class Latency {
 			this.compo = compo;
 			this.tid = tname;
 			this.compostruc = compostruc;
+			this.latestlatency = 0;
 //			this.list = addingcom(components);
 //			this.inputrate = inputrate;
 			this.layer = compostruc.size();
@@ -51,6 +48,16 @@ public class Latency {
 //			this.uti = getUti();
 		}
 		
+		public double exeLatency(){
+			double temp = 0;
+			ArrayList<String> firstl = compostruc.get(0);
+			for(String s : firstl){
+				temp += compo.get(s).getMeanarrv();
+			}
+			int size = firstl.size();
+			temp = temp/(size*1.0);
+			return temp;
+		}
 		public double totallatency(){
 			double ll = 0;
 			
@@ -140,11 +147,22 @@ public class Latency {
 		   numserver = num;
 	   }
 	   
-	   public void updateData(ArrayList<Double> arr, ArrayList<Double> serv, long num){
+	   
+	   
+	   public double getLatestlatency() {
+		return latestlatency;
+	   }
+
+	   public void setLatestlatency(double latestlatency) {
+		this.latestlatency = latestlatency;
+		}
+
+	public void updateData(ArrayList<Double> arr, ArrayList<Double> serv, long num, double lat){
 
 		   updateArr(arr);
 		   updateServ(serv);
 		   updateSlotnum(num);
+		   setLatestlatency(lat);
 	   }
 //		public static void main(String[] args) {
 //			ArrayList<Double> test1 = new ArrayList<Double>();

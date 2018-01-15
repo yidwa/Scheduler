@@ -6,6 +6,7 @@ import java.util.HashMap;
 import com.google.common.collect.Multiset.Entry;
 
 import general.Component;
+import general.Methods;
 
 public class Throughput {
 //	public Topology t;
@@ -116,7 +117,6 @@ public class Throughput {
 		double input = 0;
 		double output = 0;	
 		Component c;
-		System.out.println("size of compostruc "+compostruc.size());
 		for(int i  = 0; i<compostruc.get(0).size(); i++){
 			String value = compostruc.get(0).get(i);
 			c = compo.get(value);
@@ -127,8 +127,10 @@ public class Throughput {
 		System.out.println("inside thorughput ratio, input is "+input+ " , outoput is "+output);
 		if(input == 0)
 			return 0;
-		else if(input<output)
-		    return output*1.0/input;
+		else if(input>output){
+		    String tempraito = Methods.formatter.format(output*1.0/input);
+		    return Double.valueOf(tempraito);
+		}
 		else
 			return 1;
 	}

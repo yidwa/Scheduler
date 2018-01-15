@@ -5,21 +5,22 @@ package model;
  */
 public class Metrics {
 	public String tname;
-	public long throughput;
+//	public long throughput;
+	public double thrratio;
 	public double latency;
 	
-	public Metrics(String tname, long throughput, double latency){
+	public Metrics(String tname, long thrratio, double latency){
 		this.tname = tname;
-		this.throughput = throughput;
+		this.thrratio = thrratio;
 		this.latency = latency;
 	}
 
-	public long getThroughput() {
-		return throughput;
+	public double getThroughput() {
+		return thrratio;
 	}
 
-	public void setMetrics(long throughput, double latency) {
-		this.throughput = throughput;
+	public void setMetrics(double thrratio, double latency) {
+		this.thrratio = thrratio;
 		this.latency = latency;
 	}
 
@@ -31,7 +32,7 @@ public class Metrics {
 
 	@Override
 	public String toString() {
-		return tname + ", throughput=" + throughput + ", latency=" + latency;
+		return tname + ", throughput ratio=" + thrratio + ", latency=" + latency;
 	}
 	
 	
