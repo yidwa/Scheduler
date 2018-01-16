@@ -78,7 +78,6 @@ public class Throughput {
 		long l = 0;
 		double processed;
 		double input = inputrate;
-		System.out.println("input is "+input);
 		long output = 0;
 		
 		Component c;
@@ -124,7 +123,6 @@ public class Throughput {
 			input += compo.get(s).getLastemit();
 			output += compo.get(s).getLastack();
 		}
-		System.out.println("inside thorughput ratio, input is "+input+ " , outoput is "+output);
 		if(input == 0)
 			return 0;
 		else if(input>output){

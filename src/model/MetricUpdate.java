@@ -66,7 +66,7 @@ public class MetricUpdate implements Runnable {
  * ???
  */
 		public void performanceMetric(){
-			long thr;
+		
 			double lat;
 			double thrrat;
 			String sen = "";
@@ -83,26 +83,40 @@ public class MetricUpdate implements Runnable {
 			    
 			    sen +=  s+ " , "+ thrrat + " , "+ lat+ " \n";
 			    
+			    System.out.println(thrrat+" , "+lat);
 			    // need to change the metric for component
 			    // including the output/input, and the execute latency
 			    for(String cid : topologies.get(s).getCompo().keySet()){
 			    	Component c = topologies.get(s).getCompo().get(cid);
-			    	double pro = c.getTotalprocess();
-			    	double la = c.getModellatency();
+//			    	double pro = c.getTotalprocess();
+//			    	double la = c.getModellatency();
+			    	long emit = c.getLastemit();
+			    	long ack = c.getLastack();
+			    	double ratio = Double.valueOf(Methods.formatter.format(ack*1.0/emit));
+			    	
+			    	double compolat = 0;
+			    	if (c.spout)
+			    		compolat =c.getTotalprocess();
+			    	else
+			    	    compolat = c.getExeLatency();
 			    	// la is the execute latency
-			    	sen += "model "+cid+" , "+pro+", "+la+" \n";
-			    	if(c.spout == false)
-   			    	  sen += "sys "+topologies.get(s).getSystemcolatency().get(cid)+" \n";
+			    	sen += cid+" , "+ratio+", "+compolat+" \n";
+			    	System.out.println("cid "+cid+ " , "+ratio+" , "+compolat);
+//			    	if(c.spout == false)
+//   			    	  sen += "sys "+topologies.get(s).getSystemcolatency().get(cid)+" \n";
 			    	for(String ctid : c.threads.keySet()){
-			    		String temp = c.getThreads().get(ctid).changedtype;
-			    		if(!(temp == "")){
-			    			topologies.get(s).getChangedschedule().put(ctid, temp);
-				    		}
-			    		}
+			    		sen += ctid+" ; ";
 			    	}
-			    
-			    sen += topologies.get(s).getChangedschedule().toString()+" priority "+ priority.get(s)+"\n";
+			    	sen += "\n";
+//			    		String temp = c.getThreads().get(ctid).changedtype;
+//			    		if(!(temp == "")){
+//			    			topologies.get(s).getChangedschedule().put(ctid, temp);
+//				    		}
+//			    		}
+			   	}
+//			    sen += topologies.get(s).getChangedschedule().toString()+" priority "+ priority.get(s)+"\n";
 			    sen += "current scheduler is "+topologies.get(s).getCschedule().toString();
+			    
 			    sen += "\n";
 			    
 			    
@@ -110,24 +124,24 @@ public class MetricUpdate implements Runnable {
 			
 			
 			// optimization for the model based scheuler
-			HashMap<String, String> mapping = Optimisation.cpuscheduelr(topologies, priority);
-			
-		
-			String mappresult = "";
-
-			for(String s: mapping.keySet()){
-				mappresult += s+"\n";
-				mappresult += mapping.get(s).toString();
-				mappresult += "\n";
-			}
-	        
-			Methods.writeFile(mappresult, "model_schedule",false);
+//			HashMap<String, String> mapping = Optimisation.cpuscheduelr(topologies, priority);
+//			
+//		
+//			String mappresult = "";
+//
+//			for(String maps: mapping.keySet()){
+//				mappresult += maps+"\n";
+//				mappresult += mapping.get(maps).toString();
+//				mappresult += "\n";
+//			}
+//	        
+//			Methods.writeFile(mappresult, "model_schedule",false);
 			//	System.out.println("usage in metric update "+Optimisation.cpuscheduelr(topologies, priority).toString());
 			Methods.writeFile(sen, "topology_metrics.txt",true);
 //			    System.out.println("set metrics "+ thr+ " , "+ lat);
 //			    System.out.println("metric of "+s+" , "+metrics.get(s).latency+" , "+metrics.get(s).throughput);
-		}
-			   
+			}
+	
 			
 	
 //		public void updateData(){

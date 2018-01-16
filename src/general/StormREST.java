@@ -243,10 +243,9 @@ public class StormREST {
 							pri = Integer.valueOf(name.substring(ind + 1, ind + 2));
 						}
 					
-						System.out.println("it's in update and the "+id+ "is exist? "+StormCluster.topologies.containsKey(id));
 						//not yet added
 						if (StormCluster.topologies.containsKey(id)) {
-							System.out.println("id "+id+" is already existed");
+//							System.out.println("id "+id+" is already existed");
 							compare.add(id);
 							topologyini = false;	
 						}
@@ -594,10 +593,11 @@ public class StormREST {
 				Long executed = (Long) jobj.get("executed");
 				Long emitted = (Long) jobj.get("emitted");
 				Long transferred = (Long) jobj.get("transferred");
+				Long acked = (Long) jobj.get("acked");
 				String latency = (String) jobj.get("executeLatency");
 				String processlat = (String) jobj.get("processLatency");
 				Component c = topologies.get(id).getCompo().get(boltid);
-				c.setLast(emitted, transferred);
+				c.setLast(emitted, transferred,acked);
 //				c.setExecute(executed);
 //
 				double latencyupdate = Double.valueOf(Methods.formatter.format(1000 / Double.valueOf(latency)));
@@ -934,15 +934,19 @@ public class StormREST {
 						jobj = (JSONObject) obj;
 						Long port = (Long) jobj.get("port");
 						String host = (String) jobj.get("host");
-						Executor e = new Executor(host, port);
+						
+						
+						ComponentThread ct;
+						String ctid = (String) jobj.get("id");
+						
+						Executor e = new Executor(host, port,ctid);
 						if (!exe.contains(e)) {
 							exe.add(e);
 						}
 						if (check.contains(e)) {
 							check.remove(e);
 						}
-						ComponentThread ct;
-						String ctid = (String) jobj.get("id");
+						
 						long ack;
 						if (spout == false) {
 							Long execute = (Long) jobj.get("executed");

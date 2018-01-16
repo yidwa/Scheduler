@@ -51,6 +51,8 @@ public class Component {
 	public double uti;
 	// the estimated latency based on queuing theory
 	public double modellatency;
+	// the id of executor for each compoennt
+	public ArrayList<String> exeid;
 
 	Map<String,String> valuealltime;
 	// component with one upstream node and one downstream node
@@ -71,6 +73,7 @@ public class Component {
 		this.meanserv = 0;
 		this.uti = 0;
 		this.valuealltime = new HashMap<String, String>();
+		this.exeid = new ArrayList<>();
 		// may need to change to min(thrad, executoroftopology)
 		// this.numserver = thread;
 		}
@@ -376,5 +379,16 @@ public class Component {
 	public void setValuealltime(Map<String, String> valuealltime) {
 		this.valuealltime = valuealltime;
 	}
+
+
+	public ArrayList<String> getExeid() {
+		return exeid;
+	}
+
+
+	public void setExeid(ArrayList<String> exeid) {
+		this.exeid = exeid;
+	}
+	
 	
 }

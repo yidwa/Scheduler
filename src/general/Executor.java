@@ -4,6 +4,7 @@ public class Executor {
 	String host;
 	Long port;
 	String index;
+	String id;
 //	String tid;
 
 //	public Executor(String host, Long port, String tid){
@@ -16,8 +17,15 @@ public class Executor {
 		this.host = host;
 		this.port = port;
 		this.index = host+"_"+ port;
+		this.id = "";
 	}
 
+	public Executor(String host, Long port, String id){
+		this.host = host;
+		this.port = port;
+		this.index = host+"_"+ port;
+		this.id = id;
+	}
 	
 	public String getIndex() {
 		return index;
@@ -53,6 +61,16 @@ public class Executor {
 
 	public void setPort(Long port) {
 		this.port = port;
+	}
+
+
+	public String getId() {
+		return id;
+	}
+
+
+	public void setId(String id) {
+		this.id = id;
 	}
 
 

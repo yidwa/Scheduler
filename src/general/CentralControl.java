@@ -52,17 +52,17 @@ public class CentralControl {
 			
 			
 //			for QoS scheduling		
-//			QueueUpdate qu = new QueueUpdate(sc.sr, cc.topologies, priority, cc.queues,cc.arr, cc.ser);
-//			for(PriorityQueue pq : cc.queues){
-//			   if(pq.size>0){
-////				   System.out.println("");
-//				   qu.updateLatency(cc.queues, pq.getPrioirty(), pq.getArr(), pq.getServ() );
-//			   	}
-//			   }
-//			
-//			scheduledPoolmetric.schedule(qu, 0, TimeUnit.SECONDS);
-//			
-//			Thread.sleep(waitime*1000);
+			QueueUpdate qu = new QueueUpdate(sc.sr, cc.topologies, priority, cc.queues,cc.arr, cc.ser);
+			for(PriorityQueue pq : cc.queues){
+			   if(pq.size>0){
+//				   System.out.println("");
+				   qu.updateLatency(cc.queues, pq.getPrioirty(), pq.getArr(), pq.getServ() );
+			   	}
+			   }
+			
+			scheduledPoolmetric.schedule(qu, 0, TimeUnit.SECONDS);
+			
+			Thread.sleep(waitime*1000);
 			
 			
 //			System.out.println("topology size now is "+cc.topologies.size());

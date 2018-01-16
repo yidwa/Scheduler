@@ -179,12 +179,10 @@ public class Topology {
 		// layered components
 		ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
 		int count = names.size();
-		System.out.println("inside topology init with component "+count);
 		// the first layer of the components
 		ArrayList<String> flayer = new ArrayList<String>();
 		//add the spout id to the compo
 		flayer.add(names.get(0));
-		System.out.println("add "+names.get(0)+ " as the spout");
 
 		result.add(flayer);
 		count--;
