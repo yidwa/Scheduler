@@ -41,58 +41,70 @@ public class QueueLatency {
 	}
 
 	/**
+	 * estimate the execution time according to the proposed scheduling scheme, for evaluate the qos violation
+	 * @param host
+	 * @param prohost
+	 * @return
+	 */
+	public double exetimeEstimation(ArrayList<String> host, ArrayList<String> prohost){
+		double result = 0.0;
+		Double serlatest = ServicePt.get(ServicePt.size()-1);
+		
+		return result;
+	}
+	
+	/**
 	 * waiting time estimation for the queue
 	 * @return
 	 */
 	public double waittimeEstimating(int numchannel){
 		uti = getUti();
-//		System.out.println("uti for queue "+priority+" , "+uti);
-//		double pm = waitProb();
-//		System.out.println("wait pro  "+priority+" , "+pm);
-//		double t1 = 0;
+
 		double result_b = 0.0;
+		double t11 = 0;
+		double cs = 0;
+		double ca = 0;
+		double tt = 0;
+		double t2 = 0;
+		
 		if (meanserv == 0 || uti == 1){
 			System.out.println("mean serve frequency is 0 or the util is 1");
 		
 		}
 		else{
-//		t1 = pm/(meanserv*(1-uti));
-		//update the waiting time formula
-		double t11 = meanserv/(meanserv*(1-uti));
-		double cs = DataCollection.cv(ServicePt, meanserv);
-		double ca = DataCollection.cv(ArrivalPt, meanarrv);
-		double tt = 2*numchannel;
-		double t2 = (ca+cs)/tt;
-//	    DecimalFormat formatter = new DecimalFormat("#0.000");
-//	    double result = t1*t2*1000000;
-	    result_b = t11*t2;
-//	    System.out.println("t11 "+t11+" cs, ca "+cs+ " , "+ca+" , tt "+tt);
-//	    result += getExeLatency();
-//	    result = Double.valueOf(formatter.format(result));
-	    result_b = Double.valueOf(Methods.formatter.format(result_b));
-//	    System.out.println("inside waiting time estimation : "+ result_b);
+			//update the waiting time formula
+			t11 = uti/(meanserv*(1-uti));
+			cs = DataCollection.cv(ServicePt, meanserv);
+		    ca = DataCollection.cv(ArrivalPt, meanarrv);
+		    tt = 2*numchannel;
+			t2 = (ca+cs)/tt;
+
+			result_b = t11*t2;
+		
+			result_b = Double.valueOf(Methods.formatter.format(result_b));
 		}
 		if(result_b<0){
-			System.out.println("the number needs to increase");
+			System.out.println("the uti "+uti+ " should be larger than 1, need to increase the number of channel");
 		}
+//		System.out.println("inside queue latency wait time estimation, uti "+uti+" , cs, cs "+cs+" , "+ca+" , "+"t11 "+t11+" , wait time "+result_b+ " ms");
 	    return Math.abs(result_b);
 	}
 	
 	
-	/**
-	 * calculate the probability the data need to wait for processing
-	 * @return
-	 */
-	public double waitProb(){
-		if (uti>=0.7){
-			return ((Math.pow(uti, numChannel)+uti)/2);
-		}
-		else{
-			double t = (double)(numChannel+1)/2;
-			return Math.pow(uti, t);
-		}
-	}
-	
+//	/**
+//	 * calculate the probability the data need to wait for processing
+//	 * @return
+//	 */
+//	public double waitProb(){
+//		if (uti>=0.7){
+//			return ((Math.pow(uti, numChannel)+uti)/2);
+//		}
+//		else{
+//			double t = (double)(numChannel+1)/2;
+//			return Math.pow(uti, t);
+//		}
+//	}
+//	
 	
 	/**
 	 *  get the utilization of the priority queue
@@ -112,12 +124,12 @@ public class QueueLatency {
 			 d = 0;
 		else
 			 d = 1.0/meanarrv;
-//		System.out.println("inside getuti "+d);
-		Double d1  =  Double.valueOf(Methods.formatter.format(d));
-		Double d2 =  Double.valueOf(Methods.formatter.format(numChannel*(1.0/meanserv)));
-//		System.out.println("inside get uti, arrival rate  "+d1+ "service rate "+Methods.formatter.format(1.0/meanserv)+" , number of channle "+numChannel);
-		return Double.valueOf(Methods.formatter.format(d1/d2));
-//		return meanarrv/(numChannel*meanserv);
+		Double d1  =  d;
+		Double d2 =  numChannel*(1.0/meanserv);
+		if(d2 == 0)
+			return 0;
+		else
+    		return Double.valueOf(Methods.formatter.format(d1/d2));
 	}
 
 	public int getNumChannel() {

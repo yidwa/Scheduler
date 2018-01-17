@@ -19,22 +19,31 @@ public class QoS_Opt {
 	static double eta;
 	static double ipu;
 	// twitter 50 ms , line 15 ms, diamond 20s, star 18ms
+	static double lowThr;
+	static double medThr;
+	static double higThr;
 	
 	
-	/**
-	 * initialize parameters
-	 */
-	public QoS_Opt() {
+/**
+ * initialize the parameters, by default 0.6, 0.2, 0.2
+ * @param lat true if the qos is latency related, false if the qos is throughput related
+ */
+	public QoS_Opt(boolean lat, double qos, double cpu, double switchc) {
 		// TODO Auto-generated constructor stub
-		QoS_Opt.lowLat = 55.0;
-		QoS_Opt.medLat = 25.0;
-		QoS_Opt.higLat = 15.0;
-		QoS_Opt.rho = 0.6;
-		QoS_Opt.eta = 0.2;
-		QoS_Opt.ipu = 0.2;
-//		QoS_Opt.rho = 0.8;
-//		QoS_Opt.eta = 0.1;
-//		QoS_Opt.ipu = 0.1;
+		if(lat){
+			QoS_Opt.lowLat = 55.0;
+			QoS_Opt.medLat = 25.0;
+			QoS_Opt.higLat = 15.0;
+		}
+		else{
+			QoS_Opt.lowLat = 0.80;
+			QoS_Opt.medLat = 0.90;
+			QoS_Opt.higLat = 0.95;
+		}
+		QoS_Opt.rho = qos;
+		QoS_Opt.eta = cpu;
+		QoS_Opt.ipu = switchc;
+
 	
 	}
 	
@@ -83,13 +92,12 @@ public class QoS_Opt {
 	 * @return
 	 */
 	public static double switchCost(ArrayList<String> hori, ArrayList<String> upd){
-//		System.out.println("inside switch cost "+hori.toString()+" , "+upd.toString());
 		int addingcost = 0;
 		int removingcost = 0;
-		int cost = 5;
-		//exist only in ori
+		int cost = 8;
+		//remove list
 		ArrayList<String> bu = new ArrayList<String>();
-		//exist both in ori and upd
+		//no changel list
 		ArrayList<String> bo = new ArrayList<String>();
 		
 		for(String s: hori){
@@ -99,17 +107,13 @@ public class QoS_Opt {
 				bo.add(s);
 		}
 		
-//		System.out.println("bu "+bu.toString()+" , bo "+bo.toString());
 		for(String s: upd){
 			if(!bo.contains(s))
 				addingcost += cost;
 		}
 		
 		removingcost = bu.size() * cost;
-//		System.out.println("adding cost "+ addingcost + " ,removing cost "+removingcost);
-//		System.out.println("ipu "+ipu);
-//		System.out.println("total cost for switching "+ ipu*(removingcost+addingcost));
-		return Double.valueOf(Methods.formatter.format(ipu*(removingcost+addingcost)));
+		return removingcost+addingcost;
 	}
 	
 	
@@ -117,7 +121,7 @@ public class QoS_Opt {
 	public static double cpuCost(ArrayList<String> hosts){
 		int result = 0;
 		result = getCpu(hosts);
-		return Double.valueOf(Methods.formatter.format(eta*result));
+		return result;
 	}
 	
 	/**
@@ -145,15 +149,17 @@ public class QoS_Opt {
 	 * @param prohost, random one
 	 * @return
 	 */
-	public static double costE(PriorityQueue pq, ArrayList<String> prohost, HashMap<String, Topology> topologies){
-		new QoS_Opt();
+	public static double costE(PriorityQueue pq, ArrayList<String> prohost, HashMap<String, Topology> topologies, boolean latqos, double qos,
+			double cpu, double swi){
+		new QoS_Opt(latqos, qos, cpu, swi);
 		double result = 0;
 		ArrayList<String> host = pq.getHosts();
 		double switchcost = switchCost(host, prohost);
 		double cpucost = cpuCost(prohost);
-		double qoscost = qosQueuecost(pq, topologies, prohost.size());
-		result =  switchcost + cpucost + qoscost;
+		double qoscost = qosQueuecost(pq, topologies, host, prohost, latqos, qos);
+		result =  switchcost * swi+ cpucost * cpu + qoscost * qos;
 //		System.out.println("now  "+host+" , proposed schedule "+prohost.toString()+" total cost  is "+(switchcost+cpucost+qoscost));
+		result = Double.valueOf(Methods.formatter.format(result));
 		return result;
 	}
 	
@@ -163,54 +169,82 @@ public class QoS_Opt {
 	 * @param topologies
 	 * @return
 	 */
-	public static ArrayList<String> optimizedSolution(PriorityQueue pq, HashMap<String, Topology> topologies){
-		System.out.println("optimized solution for queue "+pq.getPrioirty());
+	public static ArrayList<String> optimizedSolution(PriorityQueue pq, HashMap<String, Topology> topologies, boolean latqos, double qos, double cpu, double swi){
 		ArrayList<String> result = new ArrayList<>();
+		// contains all possible combinations of the hosts
 		ArrayList<ArrayList<String>> list = possibleHostL(pq.getPrioirty());
 		double cost = Double.MAX_VALUE;
 		for (ArrayList<String> option : list){
-			double tempcost = costE(pq, option, topologies);
+			// estimate the cost for the gvien option
+			double tempcost = costE(pq, option, topologies, latqos, qos, cpu, swi);
 			if (tempcost < cost){
 				cost  = tempcost;
 				result = option;
 			}
 		}
-//		System.out.println("the optimial cost is "+cost+ " with schedule "+result.toString());
 		return result;
 	}
 	
 	/*
-	 * calculate the cost for qos violation, in respect to priority 
+	 * calculate the cost for QoS violation, in respect to priority , while it concerns both throughput and latency
+	 * for latency, should estimate the service time together with the buffer time, to evaluate the qos violations
 	 */
-	public static double qosQueuecost(PriorityQueue pq, HashMap<String, Topology> topologies, int size){
+	public static double qosQueuecost(PriorityQueue pq, HashMap<String, Topology> topologies, ArrayList<String> host, ArrayList<String> prohost, boolean qoslat, double qosweight){
 		double result = 0;
+		double stan = 0;
 		//punishment for each topology
-		int costpertopology;
-		
-		if (pq.getPrioirty()==1 )
-			costpertopology = 10;
-		else if (pq.getPrioirty() ==2)
-			costpertopology = 6;
-		else
-			costpertopology = 4;
-		
-		ArrayList<String> tname = pq.getNames();
-		double wait = pq.getQl().waittimeEstimating(size);
-//		System.out.println("wait time now for queue "+pq.getPrioirty()+ " is "+wait);
-		//loop for all the topology that calculate the exectuion time of all components
-		for(String s : tname){
-			double totalexel = 0;
-			Topology t = topologies.get(s);
-			for(Component c : t.getCompo().values()){
-				totalexel += c.getExeLatency();
-			}
-			double lat = totalexel + pq.getAvgbuf() + wait ;
-			result += costpertopology * qosCost(lat, pq.getPrioirty());
+		double penalty;
+		if (pq.getPrioirty()==1 ){
+			penalty = 1.5;
+			stan = higLat;
 		}
+		else if (pq.getPrioirty() ==2){
+			penalty = 1.2;
+			stan = medLat;
+		}
+		else{
+			penalty = 1;
+			stan = lowLat;
+		}
+		ArrayList<String> tname = pq.getNames();
+		
+		
+		// the qos cost should be considered as latency violation
+		if(qoslat){
+//			double exeest = pq.getQl().exetimeEstimation(host, prohost);
+			int ori = getCpu(host);
+			int aft = getCpu(prohost);
+			double exelat = pq.getQl().meanserv;
+			double estlat;
+			if(ori != 0 )
+				 estlat = aft*exelat/ori;
+			else 
+				estlat = 0;
 			
-
-		result = result * rho;
-		return Double.valueOf(Methods.formatter.format(result));
+			double lat = estlat + pq.getAvgbuf();
+			
+			lat = Double.valueOf(Methods.formatter.format(lat));
+			
+			double dif = lat - stan;
+			if(dif < 0)
+				return 0;
+			else
+				result = dif * penalty;
+		}
+		// the qos cost is concerning throughput
+		else{
+				result = 0;
+			}
+//			for(String s : tname){
+//				double totalexel = 0;
+//				Topology t = topologies.get(s);
+//				for(Component c : t.getCompo().values()){
+//					totalexel += c.getExeLatency();
+//				}
+//				double lat = totalexel + pq.getAvgbuf() + wait ;
+//				result += costpertopology * qosCost(lat, pq.getPrioirty());
+//			}
+	return result;
 	}
 	
 	/**

@@ -51,14 +51,16 @@ public class CentralControl {
 			Thread.sleep(20*1000);
 			
 			
-//			for QoS scheduling		
-			QueueUpdate qu = new QueueUpdate(sc.sr, cc.topologies, priority, cc.queues,cc.arr, cc.ser);
-			for(PriorityQueue pq : cc.queues){
-			   if(pq.size>0){
-//				   System.out.println("");
-				   qu.updateLatency(cc.queues, pq.getPrioirty(), pq.getArr(), pq.getServ() );
-			   	}
-			   }
+//			for QoS scheduling	of latency 
+			QueueUpdate qu = new QueueUpdate(sc.sr, cc.topologies, priority, cc.queues,cc.arr, cc.ser, true, 0.4, 0.3, 0.3);
+//			for QoS scheduling	of throughput 
+//			QueueUpdate qu = new QueueUpdate(sc.sr, cc.topologies, priority, cc.queues,cc.arr, cc.ser, false, 0.6, 0.2, 0.2);
+			
+//			for(PriorityQueue pq : cc.queues){
+//			   if(pq.size>0){
+//				   qu.updateLatency(cc.queues, pq.getPrioirty(), pq.getArr(), pq.getServ() );
+//			   	}
+//			   }
 			
 			scheduledPoolmetric.schedule(qu, 0, TimeUnit.SECONDS);
 			

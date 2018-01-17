@@ -21,9 +21,6 @@ public class QueueUpdate implements Runnable {
 	
 	HashMap<String, Topology> topologies;
 	HashMap<String, Integer> priority;
-//	HashMap<String, Throughput> throughput;
-//	HashMap<String, Latency> latency;
-//	HashMap<String, Metrics> metrics;
 	ArrayList<PriorityQueue> pq;
 	HashMap<String, LinkedList<Double>> arr;
 	HashMap<String, LinkedList<Double>> ser;
@@ -31,56 +28,52 @@ public class QueueUpdate implements Runnable {
 	HashMap<Integer, ArrayList<String>> mappingresult;
 	HashMap<Integer, Integer> mappingsize;
 	HashMap<Integer, Boolean> mappingupdate;
+	
+	// distinguish two types of QoS scheduling ,regarding throughpu or latency
+	boolean qoslat;
+	double qos;
+	double cpu;
+	double swi;
 
 	public QueueUpdate(StormREST sr,HashMap<String, Topology>  topologies, HashMap<String, Integer> priority, ArrayList<PriorityQueue> pq, 
-			HashMap<String, LinkedList<Double>> arr, HashMap<String, LinkedList<Double>> ser) {
+			HashMap<String, LinkedList<Double>> arr, HashMap<String, LinkedList<Double>> ser, boolean latqos, double qos, double cpu, double swi) {
 //		 TODO Auto-generated constructor stub
 		this.topologies = topologies;
 		this.priority = priority;
 		this.pq = pq;
-//		this.throughput = new HashMap<String,Throughput>();
-//		this.latency = new HashMap<String,Latency>();
-//		this.metrics = new HashMap<String, Metrics>();
 		this.arr = arr;
 		this.ser = ser;
 		this.mappingresult = new HashMap<>();
 		this.mappingsize = new HashMap<>();
-		this.mappingupdate = new HashMap<>();
-//		for(Topology t: topologies.values()){
-//			Throughput thr = new Throughput(t.getTid(), t.getCompostruct(), t.getCompo());
-//			Latency lc = new Latency(t.getTid(), t.getCompostruct(),t.getCompo(), new ArrayList<Double>(), new ArrayList<Double>(), t.getTworker().size());
-			
-//			this.throughput.put(t.getTid(), thr);
-//			this.latency.put(t.getTid(), lc);
-//			this.metrics.put(t.getTid(), new Metrics(t.getTid(), 0, 0));
-//		}
+		this.mappingupdate = new HashMap<>();	
+		this.qoslat = latqos;
+		this.qos = qos;
+		this.cpu = cpu;
+		this.swi = swi;
 		
 	}
 	
 	  public void updateLatency(ArrayList<PriorityQueue> pq , int pri, LinkedList<Double> arr, LinkedList<Double> serv){
 		 
 		  	PriorityQueue q = pq.get(pri-1);
-//		 	System.out.println("now update latency for"+ pri+ " ,it's size is "+ q.getSize());
-//		 	System.out.println("the size for arr is "+arr.size() +" , the size for serv is "+serv.size());
-		 	
+
 		  	q.setArr(arr);
 		  	q.setServ(serv);
 		  	int size = hostofQueue(q);
-//		  	q.setSize(size);
 		  	q.getQl().setNumChannel(size);
 		  	q.getQl().setArrivalPt(updateLA(arr));
 		  	q.getQl().setServicePt(updateLA(serv));
 		  	
-//		  	System.out.println("priority "+q.getPrioirty()+" has the size of "+size);
-		  	double estimation = q.getQl().waittimeEstimating(size);
+//		  	double estimation = q.getQl().waittimeEstimating(size);
 		  	double buffertimetotal = 0.0;
 		  	for(String s: q.getBuffertime().keySet()){
 		  		buffertimetotal += q.getBuffertime().get(s);
 		  	}
 		  	double bufferaverage = buffertimetotal/q.getNames().size();
+		  	bufferaverage = Double.valueOf(Methods.formatter.format(bufferaverage));
 		  	q.setAvgbuf(bufferaverage);
-		  	//not including the time for execution
-		  	q.setWaittime(estimation);
+//		  	System.out.println("set buffer time for "+q.getPrioirty()+" as "+bufferaverage);
+//		  	q.setWaittime(estimation);
 //		  	System.out.println("the waiting time for queue "+pri +" just udpated with estimation "+estimation+ " and the buffertime averaget "+bufferaverage);
 	    }
 		
@@ -97,6 +90,11 @@ public class QueueUpdate implements Runnable {
 	  
 	  }
 	  
+	  /**
+	   * update the host of the queue and return the size of host
+	   * @param pq
+	   * @return
+	   */
 	  public int hostofQueue(PriorityQueue pq){
 		  Set<String> hosts = new HashSet<String>();
 		  
@@ -116,7 +114,6 @@ public class QueueUpdate implements Runnable {
 		  if(hosts.size()>0){
 			  for(String s: hosts){
 				  hostupdate.add(s);
-//			  System.out.println("udpate queue "+pq.getPrioirty()+" with host "+s);
 			  }
 		  }
 		  pq.setHosts(hostupdate);
@@ -126,7 +123,7 @@ public class QueueUpdate implements Runnable {
 	  }
 	
 /**
- * update the waiting time for each queue
+ * run periodically 
  */
 		public void queueMetric(){
 		
@@ -134,18 +131,15 @@ public class QueueUpdate implements Runnable {
 			LinkedList<Double> tempserv = new LinkedList<>();
 		
 			for(PriorityQueue p : pq){
-				System.out.println("queue for "+ p.getPrioirty()+" ,"+p.getHosts());
-				
 				temparr = p.getArr();
 				tempserv = p.getServ();
 			
-//				System.out.println("update latency for "+p.getPrioirty());
 				if(p.getSize()>0){
 					updateLatency(pq, p.getPrioirty(), temparr, tempserv);
 				
 					// the existing scheduling host
-//					System.out.println(p.getHosts().toString());
-					ArrayList<String> queuemapping = QoS_Opt.optimizedSolution(p, topologies);
+					System.out.println("existing scheduling info for priority "+p.getPrioirty()+ " : "+p.getHosts().toString());
+					ArrayList<String> queuemapping = QoS_Opt.optimizedSolution(p, topologies, qoslat, qos, cpu, swi);
 					
 					System.out.println("the derived scheduling decision "+queuemapping.toString());
 					// mapping changed 
@@ -239,10 +233,8 @@ public class QueueUpdate implements Runnable {
 		
 	@Override
 	public void run() {
-//		System.out.println("no metric update ");
 //		// TODO Auto-generated method stub
 		System.out.println("new Queueupdate starts");
-		System.out.println();
 		queueMetric();
 	}
 	
