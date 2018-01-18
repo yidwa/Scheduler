@@ -28,6 +28,7 @@ public class QueueUpdate implements Runnable {
 	HashMap<Integer, ArrayList<String>> mappingresult;
 	HashMap<Integer, Integer> mappingsize;
 	HashMap<Integer, Boolean> mappingupdate;
+
 	
 	// distinguish two types of QoS scheduling ,regarding throughpu or latency
 	boolean qoslat;
@@ -35,8 +36,9 @@ public class QueueUpdate implements Runnable {
 	double cpu;
 	double swi;
 
-	public QueueUpdate(StormREST sr,HashMap<String, Topology>  topologies, HashMap<String, Integer> priority, ArrayList<PriorityQueue> pq, 
-			HashMap<String, LinkedList<Double>> arr, HashMap<String, LinkedList<Double>> ser, boolean latqos, double qos, double cpu, double swi) {
+	public QueueUpdate(StormREST sr,HashMap<String, Topology>  topologies, HashMap<String, Integer> priority, ArrayList<PriorityQueue> pq,
+			HashMap<String, LinkedList<Double>> arr, HashMap<String, LinkedList<Double>> ser, boolean latqos,
+			double qos, double cpu, double swi) {
 //		 TODO Auto-generated constructor stub
 		this.topologies = topologies;
 		this.priority = priority;
@@ -50,11 +52,11 @@ public class QueueUpdate implements Runnable {
 		this.qos = qos;
 		this.cpu = cpu;
 		this.swi = swi;
-		
 	}
 	
 	  public void updateLatency(ArrayList<PriorityQueue> pq , int pri, LinkedList<Double> arr, LinkedList<Double> serv){
 		 
+	
 		  	PriorityQueue q = pq.get(pri-1);
 
 		  	q.setArr(arr);
@@ -63,7 +65,8 @@ public class QueueUpdate implements Runnable {
 		  	q.getQl().setNumChannel(size);
 		  	q.getQl().setArrivalPt(updateLA(arr));
 		  	q.getQl().setServicePt(updateLA(serv));
-		  	
+		  	q.getQl().meanarrv = QueueLatency.meanUpdate(arr);
+		  	q.getQl().meanserv = QueueLatency.meanUpdate(serv);
 //		  	double estimation = q.getQl().waittimeEstimating(size);
 		  	double buffertimetotal = 0.0;
 		  	for(String s: q.getBuffertime().keySet()){
@@ -127,19 +130,25 @@ public class QueueUpdate implements Runnable {
  */
 		public void queueMetric(){
 		
-			LinkedList<Double> temparr = new LinkedList<>();
-			LinkedList<Double> tempserv = new LinkedList<>();
+//			LinkedList<Double> temparr = new LinkedList<>();
+//			LinkedList<Double> tempserv = new LinkedList<>();
 		
 			for(PriorityQueue p : pq){
-				temparr = p.getArr();
-				tempserv = p.getServ();
+//				temparr = p.getArr();
+//				tempserv = p.getServ();
 			
 				if(p.getSize()>0){
-					updateLatency(pq, p.getPrioirty(), temparr, tempserv);
+//					updateLatency(pq, p.getPrioirty(), temparr, tempserv);
 				
 					// the existing scheduling host
 					System.out.println("existing scheduling info for priority "+p.getPrioirty()+ " : "+p.getHosts().toString());
-					ArrayList<String> queuemapping = QoS_Opt.optimizedSolution(p, topologies, qoslat, qos, cpu, swi);
+					ArrayList<String> queuemapping = new ArrayList<>();
+					if(p.getQl().meanserv<100 && p.getQl().meanserv != 0)
+						queuemapping = QoS_Opt.optimizedSolution(p, topologies, qoslat, qos, cpu, swi);
+					else{
+						System.out.println("the queue "+p.getPrioirty()+" is not stable yet, with mean service rate as "+p.getQl().meanserv);
+						queuemapping = p.getHosts();
+					}
 					
 					System.out.println("the derived scheduling decision "+queuemapping.toString());
 					// mapping changed 
@@ -271,4 +280,5 @@ public class QueueUpdate implements Runnable {
 //	public void setMetrics(HashMap<String, Metrics> metrics) {
 //		this.metrics = metrics;
 //	}
+	
 }

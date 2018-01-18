@@ -3,10 +3,13 @@ package opt;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import com.yammer.metrics.core.Metric;
+
 import general.Component;
 import general.Methods;
 import general.PriorityQueue;
 import general.Topology;
+import model.Metrics;
 
 public class QoS_Opt {
 
@@ -23,7 +26,6 @@ public class QoS_Opt {
 	static double medThr;
 	static double higThr;
 	
-	
 /**
  * initialize the parameters, by default 0.6, 0.2, 0.2
  * @param lat true if the qos is latency related, false if the qos is throughput related
@@ -36,15 +38,14 @@ public class QoS_Opt {
 			QoS_Opt.higLat = 15.0;
 		}
 		else{
-			QoS_Opt.lowLat = 0.80;
-			QoS_Opt.medLat = 0.90;
-			QoS_Opt.higLat = 0.95;
+			QoS_Opt.lowThr = 0.80;
+			QoS_Opt.medThr = 0.90;
+			QoS_Opt.higThr = 0.95;
 		}
 		QoS_Opt.rho = qos;
 		QoS_Opt.eta = cpu;
 		QoS_Opt.ipu = switchc;
 
-	
 	}
 	
 	public static double getExp(int pri){
@@ -158,7 +159,7 @@ public class QoS_Opt {
 		double cpucost = cpuCost(prohost);
 		double qoscost = qosQueuecost(pq, topologies, host, prohost, latqos, qos);
 		result =  switchcost * swi+ cpucost * cpu + qoscost * qos;
-//		System.out.println("now  "+host+" , proposed schedule "+prohost.toString()+" total cost  is "+(switchcost+cpucost+qoscost));
+		System.out.println("now  "+host+" , proposed schedule "+prohost.toString()+" costs  are "+switchcost + " , "+ cpucost+ " , "+qoscost);
 		result = Double.valueOf(Methods.formatter.format(result));
 		return result;
 	}
@@ -189,24 +190,29 @@ public class QoS_Opt {
 	 * calculate the cost for QoS violation, in respect to priority , while it concerns both throughput and latency
 	 * for latency, should estimate the service time together with the buffer time, to evaluate the qos violations
 	 */
-	public static double qosQueuecost(PriorityQueue pq, HashMap<String, Topology> topologies, ArrayList<String> host, ArrayList<String> prohost, boolean qoslat, double qosweight){
+	public static double qosQueuecost(PriorityQueue pq, HashMap<String, Topology> topologies, ArrayList<String> host, ArrayList<String> prohost, boolean qoslat, 
+			double qosweight){
 		double result = 0;
-		double stan = 0;
+		double stanl = 0;
+		double stant = 0;
 		//punishment for each topology
 		double penalty;
 		if (pq.getPrioirty()==1 ){
 			penalty = 1.5;
-			stan = higLat;
+			stanl = higLat;
+			stant = higThr;
 		}
 		else if (pq.getPrioirty() ==2){
 			penalty = 1.2;
-			stan = medLat;
+			stanl = medLat;
+			stant = medThr;
 		}
 		else{
 			penalty = 1;
-			stan = lowLat;
+			stanl = lowLat;
+			stant = lowThr;
 		}
-		ArrayList<String> tname = pq.getNames();
+//		ArrayList<String> tname = pq.getNames();
 		
 		
 		// the qos cost should be considered as latency violation
@@ -216,8 +222,8 @@ public class QoS_Opt {
 			int aft = getCpu(prohost);
 			double exelat = pq.getQl().meanserv;
 			double estlat;
-			if(ori != 0 )
-				 estlat = aft*exelat/ori;
+			if(aft != 0 )
+				 estlat = ori*exelat/aft;
 			else 
 				estlat = 0;
 			
@@ -225,7 +231,12 @@ public class QoS_Opt {
 			
 			lat = Double.valueOf(Methods.formatter.format(lat));
 			
-			double dif = lat - stan;
+//			System.out.println("inside qos cost, lat ="+lat+ "ori, after "+ori+ " , "+aft+" , execute and estimate latency are "+exelat+" , "+ estlat+" avg buff "
+//					+ pq.getAvgbuf());
+			
+			double dif = lat - stanl;
+			
+//			System.out.println("dif "+dif);
 			if(dif < 0)
 				return 0;
 			else
@@ -233,8 +244,39 @@ public class QoS_Opt {
 		}
 		// the qos cost is concerning throughput
 		else{
-				result = 0;
-			}
+			// need to udpate
+			    System.out.println();
+				System.out.println("qos queue cost for thorughput");
+				double thr = 0;
+				//valide topology has the positive number of throughput ratio
+				int count = 0;
+		
+				for(String s : pq.getNames()){
+					double fr = topologies.get(s).getFailrate();
+				    double t = 1-fr;
+					if(t!=0){
+						thr += t;
+						count+=1;
+					}
+					
+				}
+				System.out.println("thr "+thr+" , count "+count);
+		
+
+				double avgthr = 0;
+				if(count!=0)
+					avgthr = thr*1.0/count;
+	
+				System.out.println("the avg throughput ratio for "+ pq.getPrioirty()+ "is "+avgthr);
+//
+				double dif = avgthr - stant;
+				System.out.println("dif is "+dif);
+
+				if(dif>0)
+					return 0;
+				else
+					result = dif*penalty;
+		}
 //			for(String s : tname){
 //				double totalexel = 0;
 //				Topology t = topologies.get(s);

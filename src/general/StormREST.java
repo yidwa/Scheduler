@@ -452,6 +452,7 @@ public class StormREST {
 						lastemit = (Long) jobj.get("emitted");
 						Long lasttrans = (Long) jobj.get("transferred");
 						Long lastack = (Long) jobj.get("acked");
+						System.out.println("update now "+spoutid+" emitted "+lastemit+" , acked "+lastack+" , trans "+lasttrans);
 						double temp  = lastack*1.0/lastemit;
 						if(temp <1)
 							throughputRate = temp;
@@ -542,7 +543,8 @@ public class StormREST {
 		t.setSystemlatency(Double.valueOf(latencyall));
 		t.setSystemlatencylatest(Double.valueOf(latencylatest));
 		double rate = Double.valueOf(Methods.formatter.format(throughputRate));
-		t.setFailrate(Methods.formatter.format(1-rate));
+		if(rate!= 0)
+			t.setFailrate(1-rate);
 	
 		if(t.getCompostruct().size()<1){
 //			System.out.println("the constuct of "+t.tid+ " is not initialized yet");

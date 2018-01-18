@@ -26,7 +26,7 @@ public class CentralControl {
 	public CentralControl(){
 		this.arr = new HashMap<String, LinkedList<Double>>();
 		this.ser = new HashMap<String, LinkedList<Double>>();
-		metrics = new HashMap<String, Metrics>();
+		this.metrics = new HashMap<String, Metrics>();
 		queues = new ArrayList<PriorityQueue>();
 	}
 	
@@ -52,21 +52,21 @@ public class CentralControl {
 			
 			
 //			for QoS scheduling	of latency 
-			QueueUpdate qu = new QueueUpdate(sc.sr, cc.topologies, priority, cc.queues,cc.arr, cc.ser, true, 0.4, 0.3, 0.3);
+//			QueueUpdate qu = new QueueUpdate(sc.sr, cc.topologies, priority, cc.queues, cc.metrics, cc.arr, cc.ser, true, 0.4, 0.3, 0.3);
 //			for QoS scheduling	of throughput 
-//			QueueUpdate qu = new QueueUpdate(sc.sr, cc.topologies, priority, cc.queues,cc.arr, cc.ser, false, 0.6, 0.2, 0.2);
+			QueueUpdate qu = new QueueUpdate(sc.sr, cc.topologies, priority, cc.queues, cc.arr, cc.ser, false, 0.4, 0.3, 0.3);
 			
-//			for(PriorityQueue pq : cc.queues){
-//			   if(pq.size>0){
-//				   qu.updateLatency(cc.queues, pq.getPrioirty(), pq.getArr(), pq.getServ() );
-//			   	}
-//			   }
+			for(PriorityQueue pq : cc.queues){
+			   if(pq.size>0){
+				   qu.updateLatency(cc.queues, pq.getPrioirty(), pq.getArr(), pq.getServ());
+			   	}
+			   }
 			
 			scheduledPoolmetric.schedule(qu, 0, TimeUnit.SECONDS);
 			
 			Thread.sleep(waitime*1000);
 			
-			
+		
 //			System.out.println("topology size now is "+cc.topologies.size());
 //			for(String s:cc.topologies.keySet()){
 //				System.out.println("topology "+ s+" , contains compoennt ");

@@ -29,7 +29,7 @@ public class Topology {
 	double systemlatency;
 	// latency latency
 	double systemlatencylatest;
-	String failrate;
+	double failrate;
 	long failed;
 	
 	HashMap<String, String> cschedule;
@@ -51,20 +51,20 @@ public class Topology {
 		this.systemlatency = 0.0;
 //		this.systemcoemit = new HashMap<String,Long>();
 		this.systemcolatency = new HashMap<String,Double>();
-		this.failrate = "0";
+		this.failrate = -0.01;
 		this.cschedule = new HashMap<String,String>();
 		this.changedschedule = new HashMap<String, String>();
 	}
 	
 
 
-	public String getFailrate() {
+	public double getFailrate() {
 		return failrate;
 	}
 
 
 
-	public void setFailrate(String failrate) {
+	public void setFailrate(double failrate) {
 		this.failrate = failrate;
 	}
 

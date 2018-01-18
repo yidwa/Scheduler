@@ -47,6 +47,7 @@ public class MetricUpdate implements Runnable {
 			this.latency.put(t.getTid(), lc);
 			this.metrics.put(t.getTid(), new Metrics(t.getTid(), 0, 0));
 		}
+	
 		
 	}
 	
@@ -68,14 +69,17 @@ public class MetricUpdate implements Runnable {
 		public void performanceMetric(){
 		
 			double lat;
-			double thrrat;
+			double thrrat = -0.1;
 			String sen = "";
+			
 			
 			for(String s: topologies.keySet()){
 				
-				System.out.println(s);
-				
-				thrrat = throughput.get(s).throughputRatio();
+				double failrate = topologies.get(s).getFailrate();
+			
+				if(failrate !=0)
+					thrrat = 1-failrate;
+//				thrrat = throughput.get(s).throughputRatio();
 				lat = latency.get(s).latestlatency;
 				
 				Metrics m = metrics.get(s);
@@ -83,7 +87,7 @@ public class MetricUpdate implements Runnable {
 			    
 			    sen +=  s+ " , "+ thrrat + " , "+ lat+ " \n";
 			    
-			    System.out.println(thrrat+" , "+lat);
+			    System.out.println("performance metric "+ s+" thrratio and lat are "+thrrat+" , "+lat);
 			    // need to change the metric for component
 			    // including the output/input, and the execute latency
 			    for(String cid : topologies.get(s).getCompo().keySet()){
@@ -101,7 +105,7 @@ public class MetricUpdate implements Runnable {
 			    	    compolat = c.getExeLatency();
 			    	// la is the execute latency
 			    	sen += cid+" , "+ratio+", "+compolat+" \n";
-			    	System.out.println("cid "+cid+ " , "+ratio+" , "+compolat);
+//			    	System.out.println("cid "+cid+ " , "+ratio+" , "+compolat);
 //			    	if(c.spout == false)
 //   			    	  sen += "sys "+topologies.get(s).getSystemcolatency().get(cid)+" \n";
 			    	for(String ctid : c.threads.keySet()){

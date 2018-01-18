@@ -32,6 +32,14 @@ public class QueueLatency {
 		this.priority = priority;
 	}
 	
+	public static  double meanUpdate(LinkedList<Double> list){
+		double result = 0;
+		for(Double d :list)
+			result += d;
+		result = result/list.size();
+		return result;
+	}
+	
 	public ArrayList<Double> updateRates(LinkedList<Double> temp){
 		ArrayList<Double> result = new ArrayList<Double>();
 		for(Double d :temp){
@@ -155,6 +163,19 @@ public class QueueLatency {
 	public void setArrivalPt(ArrayList<Double> arrivalPt) {
 		ArrivalPt = arrivalPt;
 	}
+
+	public double getMeanserv() {
+		return meanserv;
+	}
+
+
+
+	public double getMeanarrv() {
+		return meanarrv;
+	}
+
+
+	
 	
 	
 }
